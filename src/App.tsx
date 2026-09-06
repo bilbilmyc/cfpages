@@ -16,6 +16,7 @@ import { articles } from './content/articles';
 import Home from './pages/Home';
 import Journal from './pages/Journal';
 import About from './pages/About';
+import PageBoundary from './components/PageBoundary';
 const Flow = lazy(() => import('./pages/Flow'));
 const Canvas = lazy(() => import('./pages/Canvas'));
 const DevTools = lazy(() => import('./pages/DevTools'));
@@ -100,36 +101,38 @@ export default function App() {
           </span>
         </div>
         <main id="main" tabIndex={-1}>
-          <Suspense
-            fallback={
-              <div className="loading" role="status">
-                正在打开工具…
-              </div>
-            }
-          >
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/journal" element={<Journal />} />
-              <Route path="/journal/:slug" element={<Journal />} />
-              <Route path="/tools/flow" element={<Flow />} />
-              <Route path="/tools/canvas" element={<Canvas />} />
-              <Route path="/tools/dev" element={<DevTools />} />
-              <Route path="/images" element={<Images />} />
-              <Route path="/about" element={<About />} />
-              <Route
-                path="*"
-                element={
-                  <section className="empty">
-                    <h1>这条小路还没有铺好</h1>
-                    <p>页面不存在，回到工作台继续探索吧。</p>
-                    <Link className="button" to="/">
-                      返回工作台
-                    </Link>
-                  </section>
-                }
-              />
-            </Routes>
-          </Suspense>
+          <PageBoundary key={pathname}>
+            <Suspense
+              fallback={
+                <div className="loading" role="status">
+                  正在打开工具…
+                </div>
+              }
+            >
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/journal" element={<Journal />} />
+                <Route path="/journal/:slug" element={<Journal />} />
+                <Route path="/tools/flow" element={<Flow />} />
+                <Route path="/tools/canvas" element={<Canvas />} />
+                <Route path="/tools/dev" element={<DevTools />} />
+                <Route path="/images" element={<Images />} />
+                <Route path="/about" element={<About />} />
+                <Route
+                  path="*"
+                  element={
+                    <section className="empty">
+                      <h1>这条小路还没有铺好</h1>
+                      <p>页面不存在，回到工作台继续探索吧。</p>
+                      <Link className="button" to="/">
+                        返回工作台
+                      </Link>
+                    </section>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </PageBoundary>
         </main>
         <footer>
           <span>

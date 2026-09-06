@@ -41,6 +41,8 @@ Wrangler 默认本地模拟 R2/D1，数据保存在 `.wrangler/state`，这些�
 
 ## 已创建的 Cloudflare 资源
 
+- Pages：`cfpages`，公开预览地址 https://cfpages-7s6.pages.dev ，连接本仓库 `main` 分支自动构建。
+- 自定义域 `199819.xyz` 已关联，Cloudflare 显示活动、SSL 已启用；该域名仍受原有 Cloudflare Access 应用保护，访问策略需由站主确认。
 - D1：`personal-site-db`，ID `2abf91e2-f66e-4829-9fa1-b0065bf38a27`，绑定名 `DB`。
 - R2：`personal-site-images`，Standard 存储类，绑定名 `IMAGES`。
 - D1 已在控制台执行 `migrations/0001_initial.sql`，创建 `images` 表和分页索引。
