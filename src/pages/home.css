@@ -1,0 +1,101 @@
+.home .welcome {
+  padding-block: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--color-rule);
+}
+.home .welcome h1 {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.5;
+}
+.home .hello {
+  margin-bottom: var(--space-md);
+}
+.home .intro {
+  max-width: 42ch;
+}
+.home .journal-preview {
+  margin-top: var(--space-xl);
+}
+.home .workbench-section {
+  margin-top: var(--space-xl);
+}
+.section-kicker {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  margin-bottom: var(--space-xs);
+}
+.home .section-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+.home .article-row {
+  padding: var(--space-lg) var(--space-sm);
+  transition: background-color 0.15s;
+}
+.home .article-row:hover {
+  background: var(--color-soft);
+}
+.home .article-row h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+.home .article-row p {
+  font-size: 0.875rem;
+}
+.journal-placeholder {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-rule);
+  color: var(--color-muted);
+}
+.journal-placeholder h3 {
+  color: var(--color-ink);
+  font: 1.125rem var(--font-display);
+  margin-bottom: var(--space-sm);
+}
+.journal-placeholder p {
+  font-size: 0.875rem;
+}
+.journal-placeholder a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.home .home-note {
+  padding-block: var(--space-md);
+}
+.home .home-note > svg {
+  flex-shrink: 0;
+}
+@media (min-width: 64rem) {
+  .home .welcome {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    column-gap: var(--space-xl);
+    align-items: start;
+  }
+  .home .hello {
+    grid-column: 1 / -1;
+  }
+  .home .welcome h1 {
+    grid-row: 2 / 4;
+  }
+  .home .intro {
+    margin-top: var(--space-sm);
+  }
+  .home .welcome-links {
+    margin-top: var(--space-md);
+  }
+}
+@media (max-width: 30rem) {
+  .home .section-head {
+    display: flex;
+  }
+  .home .section-head h2 {
+    font-size: 1.25rem;
+  }
+  .home .article-row {
+    padding-inline: 0;
+  }
+  .journal-placeholder {
+    padding-inline: 0;
+  }
+}

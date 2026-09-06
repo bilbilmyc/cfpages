@@ -15,6 +15,7 @@ export default function Admin() {
     [error, setError] = useState(''),
     [dirty, setDirty] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [loading, setLoading] = useState(true);
   async function list(key: string, offset = 0) {
     const data = await requestJSON<{ posts: ManagedPostSummary[]; next: number | null }>(
       `/api/admin/posts?offset=${offset}`,
@@ -25,7 +26,9 @@ export default function Admin() {
     setNext(data.next);
   }
   useEffect(() => {
-    void list(token).catch((e) => setError(e.message));
+    void list(token)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [token]);
   useEffect(() => {
     sessionDirty(dirty);
@@ -85,7 +88,10 @@ export default function Admin() {
               </span>
             </button>
           ))}
-          {!posts.length && <p className="muted">还没有文章。点击“新建文章”，写下第一段文字。</p>}
+          {loading && <p role="status">正在打开文章列表…</p>}
+          {!loading && !error && !posts.length && (
+            <p className="muted">还没有文章。点击“新建文章”，写下第一段文字。</p>
+          )}
           {next !== null && (
             <button
               className="button"
@@ -114,7 +120,17 @@ export default function Admin() {
             onBusy={setBusy}
             onSaved={(row) => {
               setSelected(row);
-              void list(token).catch((e) => setError(e.message));
+              setPosts((items) => [
+                {
+                  id: row.id,
+                  title: row.title,
+                  published_at: row.published_at,
+                  updated_at: row.updated_at,
+                },
+                ...items.filter((p) => p.id !== row.id),
+              ]);
+              // A new article shifts the offset of the remaining server results.
+              if (!selected && next !== null) setNext(next + 1);
             }}
           />
         ) : (

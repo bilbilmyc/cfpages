@@ -48,6 +48,10 @@
 }
 .writing-editor {
   min-width: 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 .writing-status {
   display: flex;
@@ -127,6 +131,8 @@
   padding: var(--space-lg);
   background: var(--color-surface);
   overflow-wrap: anywhere;
+  max-width: none;
+  margin: 0;
 }
 .writing-preview h1 {
   font-family: var(--font-display);
@@ -140,16 +146,121 @@
 .recovery .button {
   margin-right: var(--space-sm);
 }
+.writing-mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.writing-surface {
+  display: grid;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.writing-surface textarea {
+  font:
+    0.9375rem/1.9 var(--font-mono),
+    var(--font-body);
+}
+.writing-surface-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.writing-surface-split > * {
+  min-width: 0;
+}
+.writing-surface-split .writing-preview {
+  max-height: 600px;
+  overflow: auto;
+}
+.writing-preview .preview-label {
+  color: var(--color-muted);
+  font: 0.75rem var(--font-body);
+  margin: 0 0 var(--space-lg);
+}
+.writing-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-inline: calc(-1 * var(--space-lg));
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-rule);
+  box-shadow: 0 -8px 24px oklch(25% 0.016 145 / 0.04);
+}
+.writing-action-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  font-size: 0.8125rem;
+}
+.writing-action-note > span {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+.writing-action-note small {
+  color: var(--color-muted);
+}
+.writing-actions .editor-toolbar {
+  margin-block: var(--space-sm) 0;
+}
+.writing-actions .notice {
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.8125rem;
+}
+.writing-help {
+  margin-top: var(--space-md);
+}
+.writing-list {
+  position: sticky;
+  top: var(--space-lg);
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+}
+.writing-item:hover:not(:disabled) {
+  background: var(--color-soft);
+}
+.writing-item[aria-pressed='true'] strong {
+  color: var(--color-accent);
+}
+.writing-tools [aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
 @media (max-width: 70rem) {
   .writing-layout {
     grid-template-columns: 1fr;
   }
   .writing-list {
+    position: static;
     border-right: 0;
     border-bottom: 1px solid var(--color-rule);
     padding: 0 0 var(--space-lg);
     max-height: 260px;
     overflow: auto;
+  }
+}
+@media (max-width: 48rem) {
+  .writing-surface-split {
+    grid-template-columns: 1fr;
+  }
+  .writing-editor {
+    padding: var(--space-md);
+  }
+  .writing-actions {
+    margin-inline: calc(-1 * var(--space-md));
+    padding-inline: var(--space-md);
+  }
+  .writing-preview {
+    padding: var(--space-md);
+  }
+  .writing-actions .editor-toolbar {
+    gap: var(--space-sm);
   }
 }
 @media (max-width: 30rem) {
@@ -162,9 +273,11 @@
   .writing-body {
     min-height: 340px;
   }
-  .writing-editor .editor-toolbar {
-    align-items: stretch;
-    flex-direction: column;
+  .writing-actions .editor-toolbar > .button {
+    flex: 1;
+  }
+  .writing-action-note small {
+    display: none;
   }
   .writing-start {
     padding: var(--space-xl) var(--space-md);

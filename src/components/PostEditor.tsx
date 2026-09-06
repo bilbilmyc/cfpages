@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Save, Send, Download, ImagePlus } from 'lucide-react';
+import WritingBody from './WritingBody';
+import { Save, Send, Download } from 'lucide-react';
 import { download, Notice } from './ui';
 import { requestJSON, type ManagedPost, type PostFields } from '../lib/posts';
 import { readLocal, saveLocal } from '../lib/storage';
@@ -35,10 +35,12 @@ export default function PostEditor({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
-  const [preview, setPreview] = useState(false);
+  const operation = useRef(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const [activity, setActivity] = useState('');
   const key = `studio-writing-${record?.id || 'new'}`;
   const [recovery, setRecovery] = useState(() => readLocal<PostFields | null>(key, null, valid));
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
   const dirty = JSON.stringify(fields) !== JSON.stringify(fieldsOf(record || empty));
   useEffect(() => {
     onDirty(dirty);
@@ -58,25 +60,23 @@ export default function PostEditor({
     setMessage('');
     if (!saveLocal(key, next)) setError('浏览器恢复副本保存失败，请及时保存草稿或导出文件。');
   }
-  function insert(before: string, after = '', placeholder = '文字') {
-    const input = bodyRef.current,
-      start = input?.selectionStart ?? fields.body.length,
-      end = input?.selectionEnd ?? start;
-    const text = fields.body.slice(start, end) || placeholder;
-    change({
-      ...fields,
-      body: fields.body.slice(0, start) + before + text + after + fields.body.slice(end),
-    });
-    requestAnimationFrame(() => {
-      bodyRef.current?.focus();
-      bodyRef.current?.setSelectionRange(
-        start + before.length,
-        start + before.length + text.length,
-      );
-    });
-  }
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        if (!event.repeat && !operation.current) void save('save');
+      }
+    };
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
+  });
+  useEffect(() => {
+    if (!initial) titleRef.current?.focus();
+  }, [initial]);
   async function save(action: 'save' | 'publish' | 'unpublish') {
+    if (operation.current) return;
     if (!fields.title.trim()) {
+      titleRef.current?.focus();
       setError('先给文章起一个标题吧。');
       return;
     }
@@ -85,10 +85,14 @@ export default function PostEditor({
       !window.confirm('撤下后访客将无法阅读这篇文章，草稿仍然保留。确认撤下？')
     )
       return;
+    operation.current = true;
     setBusy(true);
     onBusy(true);
     setError('');
     setMessage('');
+    setActivity(
+      action === 'publish' ? '正在发布…' : action === 'unpublish' ? '正在撤下…' : '正在保存草稿…',
+    );
     let current = record;
     try {
       if (!current) {
@@ -139,17 +143,23 @@ export default function PostEditor({
           ? '文章已发布，访客现在可以阅读。'
           : action === 'unpublish'
             ? '文章已撤下，草稿保留。'
-            : '草稿已保存到云端，公开版本保持不变。',
+            : saved.published_at
+              ? '草稿已保存到云端，公开版本保持不变。'
+              : '草稿已保存到云端，准备好了再发布。',
       );
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      operation.current = false;
       setBusy(false);
       onBusy(false);
     }
   }
-  async function upload(file?: File) {
-    if (!file) return;
+  async function upload(file: File | undefined, start: number, end: number) {
+    if (!file || operation.current) return;
+    operation.current = true;
+    setActivity('正在上传图片…');
+    setMessage('');
     setBusy(true);
     onBusy(true);
     setError('');
@@ -167,11 +177,13 @@ export default function PostEditor({
         token,
       );
       const description = file.name.replace(/[\[\]\\\r\n]/g, '');
-      change({ ...fields, body: `${fields.body}\n\n![${description}](${image.url})\n` });
-      setMessage('图片已上传，并插入正文末尾。');
+      const markdown = `\n\n![${description}](${image.url})\n\n`;
+      change({ ...fields, body: fields.body.slice(0, start) + markdown + fields.body.slice(end) });
+      setMessage('图片已插入光标位置，记得保存草稿。');
     } catch (e) {
       setError(`插图失败：${(e as Error).message}`);
     } finally {
+      operation.current = false;
       setBusy(false);
       onBusy(false);
     }
@@ -181,7 +193,7 @@ export default function PostEditor({
       <div className="writing-status">
         <span className="badge">{record?.published_at ? '已有公开版本' : '未发布草稿'}</span>
         <span className="muted small-text">
-          {dirty ? '修改尚未保存' : record ? '已保存到云端' : '从一个标题开始'}
+          {dirty ? '有修改 · 等待保存到云端' : record ? '草稿已保存到云端' : '从一个标题开始'}
         </span>
       </div>
       {recovery && JSON.stringify(recovery) !== JSON.stringify(fields) && (
@@ -206,6 +218,7 @@ export default function PostEditor({
         <label>
           文章标题
           <input
+            ref={titleRef}
             value={fields.title}
             onChange={(e) => change({ ...fields, title: e.target.value })}
             placeholder="给这次思考起个名字"
@@ -233,62 +246,7 @@ export default function PostEditor({
             />
           </label>
         </div>
-        <div className="writing-tools" aria-label="正文排版">
-          <button type="button" onClick={() => insert('\n## ', '\n', '小标题')} disabled={preview}>
-            小标题
-          </button>
-          <button type="button" onClick={() => insert('**', '**')} disabled={preview}>
-            加粗
-          </button>
-          <button type="button" onClick={() => insert('\n- ', '\n', '列表内容')} disabled={preview}>
-            列表
-          </button>
-          <button type="button" onClick={() => insert('\n> ', '\n', '引用内容')} disabled={preview}>
-            引用
-          </button>
-          <button
-            type="button"
-            onClick={() => insert('\n```\n', '\n```\n', '代码')}
-            disabled={preview}
-          >
-            代码
-          </button>
-          <label className="file-button">
-            <ImagePlus size={15} />
-            插入图片
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              aria-label="上传文章插图"
-              onChange={(e) => {
-                void upload(e.target.files?.[0]);
-                e.target.value = '';
-              }}
-            />
-          </label>
-          <button type="button" aria-pressed={preview} onClick={() => setPreview(!preview)}>
-            {preview ? '继续编辑' : '查看预览'}
-          </button>
-        </div>
-        {preview ? (
-          <div className="writing-preview prose">
-            <h1>{fields.title || '未命名文章'}</h1>
-            <p>{fields.summary}</p>
-            <ReactMarkdown>{fields.body || '正文预览会出现在这里。'}</ReactMarkdown>
-          </div>
-        ) : (
-          <label>
-            正文
-            <textarea
-              ref={bodyRef}
-              className="writing-body"
-              value={fields.body}
-              onChange={(e) => change({ ...fields, body: e.target.value })}
-              maxLength={100000}
-              placeholder="直接输入文字即可。空一行开始新段落；选中文字后，可以用上方按钮添加排版。"
-            />
-          </label>
-        )}
+        <WritingBody fields={fields} onChange={change} onUpload={upload} />
       </fieldset>
       <div className="writing-status">
         <span className="muted small-text">
@@ -308,35 +266,51 @@ export default function PostEditor({
           导出 Markdown
         </button>
       </div>
-      <div className="editor-toolbar">
-        <button className="button" disabled={busy} onClick={() => void save('save')}>
-          <Save size={16} />
-          保存草稿
-        </button>
-        <button className="button primary" disabled={busy} onClick={() => void save('publish')}>
-          <Send size={16} />
-          {record?.published_at ? '更新公开文章' : '发布文章'}
-        </button>
-        {record?.published_at && (
-          <>
-            <a
-              className="text-link"
-              href={`/journal/${record.slug}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              查看公开文章 ↗
-            </a>
-            <button className="button small" disabled={busy} onClick={() => void save('unpublish')}>
-              撤下文章
-            </button>
-          </>
-        )}
+      <div className="writing-actions">
+        <div className="writing-action-note">
+          <span>
+            {record?.published_at
+              ? dirty || record.revision !== record.published_revision
+                ? '新修改还未公开'
+                : '当前文章已公开'
+              : '草稿仅自己可见'}
+          </span>
+          <small>保存草稿不会发布 · Ctrl / ⌘ + S 快速保存</small>
+        </div>
+        <div className="editor-toolbar">
+          <button className="button" disabled={busy} onClick={() => void save('save')}>
+            <Save size={16} />
+            保存草稿
+          </button>
+          <button className="button primary" disabled={busy} onClick={() => void save('publish')}>
+            <Send size={16} />
+            {record?.published_at ? '更新公开文章' : '发布文章'}
+          </button>
+          {record?.published_at && (
+            <>
+              <a
+                className="text-link"
+                href={`/journal/${record.slug}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                查看公开文章 ↗
+              </a>
+              <button
+                className="button small"
+                disabled={busy}
+                onClick={() => void save('unpublish')}
+              >
+                撤下文章
+              </button>
+            </>
+          )}
+        </div>
+        {busy && <p role="status">{activity}</p>}
+        {message && <Notice>{message}</Notice>}
+        {error && <Notice error>{error}</Notice>}
       </div>
-      {busy && <p role="status">正在保存，请稍候…</p>}
-      {message && <Notice>{message}</Notice>}
-      {error && <Notice error>{error}</Notice>}
-      <p className="muted small-text">
+      <p className="muted small-text writing-help">
         “保存草稿”不会改变公开文章；修改完成后点击“
         {record?.published_at ? '更新公开文章' : '发布文章'}
         ”。恢复副本存于当前设备，请勿在共享电脑上留下私人草稿。

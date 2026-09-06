@@ -10,6 +10,7 @@ import {
 import { usePublishedPosts } from '../lib/usePublishedPosts';
 import { site } from '../config';
 import { TextLink } from '../components/ui';
+import './home.css';
 export default function Home() {
   const { posts: articles, loading, error } = usePublishedPosts();
   return (
@@ -19,9 +20,9 @@ export default function Home() {
           你好，欢迎来坐坐 <span aria-hidden="true">✳</span>
         </p>
         <h1>
-          分享一点思考，
+          记录所学，
           <br />
-          创造一些<span>有用的东西。</span>
+          也把<span>想法做出来。</span>
         </h1>
         <p className="intro">
           我是 {site.author}。这里放着技术笔记、日常灵感，
@@ -33,10 +34,51 @@ export default function Home() {
           <TextLink to="/about">认识这个空间</TextLink>
         </div>
       </header>
+      <section className="journal-preview" aria-labelledby="recent-title">
+        <div className="section-head">
+          <div>
+            <p className="section-kicker">随手记录，认真分享</p>
+            <h2 id="recent-title">最近的笔记</h2>
+          </div>
+          <TextLink to="/journal">查看全部文章</TextLink>
+        </div>
+        <div className="article-rows">
+          {articles.slice(0, 3).map((a) => (
+            <Link className="article-row" to={`/journal/${a.slug}`} key={a.slug}>
+              <span className="article-category">{a.category}</span>
+              <div>
+                <h3>{a.title}</h3>
+                <p>{a.summary}</p>
+                <small>{a.date}</small>
+              </div>
+              <ArrowUpRight size={20} aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+        {loading && (
+          <p className="journal-placeholder" role="status">
+            正在翻开最近的笔记…
+          </p>
+        )}
+        {error && (
+          <p className="journal-placeholder" role="status">
+            笔记暂时无法加载。<Link to="/journal">前往文章列表重试 →</Link>
+          </p>
+        )}
+        {!loading && !error && !articles.length && (
+          <div className="journal-placeholder">
+            <h3>第一篇笔记，正在酝酿。</h3>
+            <p>关于技术、生活，以及值得记下的小事。先去工具箱逛逛吧。</p>
+          </div>
+        )}
+      </section>
       <section className="workbench-section" aria-labelledby="workbench-title">
         <div className="section-head">
-          <h2 id="workbench-title">从一个想法开始</h2>
-          <span className="muted">浏览器打开，就能动手</span>
+          <div>
+            <p className="section-kicker">把灵感放到桌面上</p>
+            <h2 id="workbench-title">随手可用的工具</h2>
+          </div>
+          <span className="muted">无需登录，打开即用</span>
         </div>
         <div className="workbench-grid">
           <Link className="feature-tool" to="/tools/flow">
@@ -86,27 +128,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <section className="journal-preview">
-        <div className="section-head">
-          <h2>最近的笔记</h2>
-          <TextLink to="/journal">查看全部</TextLink>
-        </div>
-        <div className="article-rows">
-          {articles.slice(0, 2).map((a) => (
-            <Link className="article-row" to={`/journal/${a.slug}`} key={a.slug}>
-              <span className="article-category">{a.category}</span>
-              <div>
-                <h3>{a.title}</h3>
-                <p>{a.summary}</p>
-              </div>
-              <ArrowUpRight size={20} />
-            </Link>
-          ))}
-        </div>
-      </section>
-      {loading && <p role="status">正在加载最近的笔记…</p>}
-      {error && <p className="muted">笔记暂时无法加载，请稍后再试。</p>}
-      {!loading && !error && !articles.length && <p className="muted">第一篇笔记，正在酝酿。</p>}
       <aside className="home-note">
         <CornerDownRight size={18} />
         <p>这里没有完成时。笔记会更新，工具会变好，想法也会继续生长。</p>
