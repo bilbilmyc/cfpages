@@ -4,7 +4,6 @@ import {
   Workflow,
   PencilRuler,
   Braces,
-  Image,
   CornerDownRight,
   ArrowRight,
 } from 'lucide-react';
@@ -84,14 +83,6 @@ export default function Home() {
               </div>
               <ArrowUpRight size={20} />
             </Link>
-            <Link className="image-strip" to="/images">
-              <Image size={20} />
-              <div>
-                <strong>图片空间</strong>
-                <span>存一张图，分享一条链接。</span>
-              </div>
-              <ArrowUpRight size={18} />
-            </Link>
           </div>
         </div>
       </section>
@@ -115,14 +106,7 @@ export default function Home() {
       </section>
       {loading && <p role="status">正在加载最近的笔记…</p>}
       {error && <p className="muted">笔记暂时无法加载，请稍后再试。</p>}
-      {!loading && !error && !articles.length && (
-        <p className="muted">
-          第一篇笔记，正在酝酿。
-          <Link className="text-link" to="/admin">
-            进入写作后台
-          </Link>
-        </p>
-      )}
+      {!loading && !error && !articles.length && <p className="muted">第一篇笔记，正在酝酿。</p>}
       <aside className="home-note">
         <CornerDownRight size={18} />
         <p>这里没有完成时。笔记会更新，工具会变好，想法也会继续生长。</p>

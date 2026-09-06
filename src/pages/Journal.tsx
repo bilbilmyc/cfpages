@@ -75,9 +75,6 @@ function ArticleList() {
             placeholder="搜索文章、正文或分类…"
           />
         </label>
-        <Link className="text-link" to="/admin">
-          站主写作 <ArrowUpRight size={16} />
-        </Link>
       </div>
       {loading ? (
         <p role="status">正在整理笔记…</p>

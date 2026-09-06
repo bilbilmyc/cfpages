@@ -1,12 +1,11 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { NavLink, Route, Routes, useLocation, Link } from 'react-router-dom';
+import { NavLink, Route, Routes, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   House,
   BookOpen,
   Workflow,
   PencilRuler,
   Braces,
-  Image,
   ArrowUpRight,
   Github,
   Leaf,
@@ -19,15 +18,13 @@ import PageBoundary from './components/PageBoundary';
 const Flow = lazy(() => import('./pages/Flow'));
 const Canvas = lazy(() => import('./pages/Canvas'));
 const DevTools = lazy(() => import('./pages/DevTools'));
-const Images = lazy(() => import('./pages/Images'));
-const Admin = lazy(() => import('./pages/Admin'));
+const AdminArea = lazy(() => import('./components/AdminArea'));
 const links = [
-  { to: '/', label: '工作台', icon: House },
+  { to: '/', label: '首页', icon: House },
   { to: '/journal', label: '文章与分享', icon: BookOpen },
   { to: '/tools/flow', label: '流程图', icon: Workflow },
   { to: '/tools/canvas', label: '自由画布', icon: PencilRuler },
   { to: '/tools/dev', label: '开发工具', icon: Braces },
-  { to: '/images', label: '图片空间', icon: Image },
 ];
 export default function App() {
   const location = useLocation();
@@ -35,7 +32,11 @@ export default function App() {
   useEffect(() => {
     const title =
       links.find((item) => item.to === pathname)?.label ||
-      (pathname === '/admin' ? '写作后台' : pathname.startsWith('/journal/') ? '阅读文章' : '关于');
+      (pathname.startsWith('/admin')
+        ? '站主管理'
+        : pathname.startsWith('/journal/')
+          ? '阅读文章'
+          : '关于');
     document.title = `${title} · ${site.name}`;
     document
       .querySelector('link[rel="canonical"]')
@@ -47,13 +48,26 @@ export default function App() {
     window.scrollTo(0, 0);
     document.getElementById('main')?.focus({ preventScroll: true });
   }, [pathname]);
+  if (pathname === '/images') return <Navigate to="/admin/images" replace />;
+  if (pathname === '/admin' || pathname.startsWith('/admin/'))
+    return (
+      <Suspense
+        fallback={
+          <p className="loading" role="status">
+            正在打开管理后台…
+          </p>
+        }
+      >
+        <AdminArea />
+      </Suspense>
+    );
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
         跳到主要内容
       </a>
       <aside className="sidebar">
-        <Link className="brand" to="/" aria-label="返回工作台">
+        <Link className="brand" to="/" aria-label="返回首页">
           <span className="brand-mark">s.</span>
           <span>
             {site.author}
@@ -78,11 +92,6 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <NavLink to="/admin">
-            <PencilRuler size={17} />
-            写作后台
-            <ArrowUpRight size={14} />
-          </NavLink>
           <NavLink to="/about">
             <Leaf size={17} />
             关于这个空间
@@ -120,8 +129,6 @@ export default function App() {
                 <Route path="/tools/flow" element={<Flow />} />
                 <Route path="/tools/canvas" element={<Canvas />} />
                 <Route path="/tools/dev" element={<DevTools />} />
-                <Route path="/images" element={<Images />} />
-                <Route path="/admin" element={<Admin />} />
                 <Route path="/about" element={<About />} />
                 <Route
                   path="*"

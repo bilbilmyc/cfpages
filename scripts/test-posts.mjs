@@ -12,6 +12,8 @@ const fields = {
 };
 const api = (path, init = {}) => fetch(`${base}${path}`, init);
 assert.equal((await api('/api/admin/posts')).status, 401);
+assert.equal((await api('/api/admin/session')).status,401);
+assert.equal((await api('/api/admin/session',{headers})).status,200);
 assert.equal(
   (
     await api('/api/admin/posts', {

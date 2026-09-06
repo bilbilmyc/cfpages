@@ -1,0 +1,95 @@
+.admin-area {
+  min-height: 100vh;
+  background: var(--color-paper);
+}
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg) max(var(--space-lg), calc((100vw - 1280px) / 2));
+  border-bottom: 1px solid var(--color-rule);
+  background: var(--color-surface);
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+.admin-brand small {
+  display: block;
+  font: var(--text-sm) var(--font-body);
+  color: var(--color-muted);
+  margin-top: var(--space-xs);
+}
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  max-width: 1280px;
+  margin: auto;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-rule);
+}
+.admin-nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  color: var(--color-muted);
+}
+.admin-nav a.active {
+  color: var(--color-accent);
+  border-bottom: 2px solid var(--color-accent);
+}
+.admin-nav button {
+  margin-left: auto;
+}
+.admin-main {
+  max-width: 1280px;
+  margin: auto;
+  padding: var(--space-xl) var(--space-lg);
+}
+.admin-main .login-panel {
+  margin: var(--space-xl) auto;
+}
+.admin-main .login-panel h1 {
+  font: 2rem var(--font-display);
+  margin-bottom: var(--space-md);
+}
+.admin-footer {
+  max-width: 1280px;
+  margin: auto;
+  border-top: 1px solid var(--color-rule);
+  padding: var(--space-lg);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+@media (max-width: 30rem) {
+  .admin-header {
+    padding: var(--space-md);
+  }
+  .admin-header > .text-link {
+    font-size: var(--text-sm);
+  }
+  .admin-nav {
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    font-size: var(--text-sm);
+  }
+  .admin-main {
+    padding: var(--space-lg) var(--space-md);
+  }
+  .admin-brand {
+    gap: var(--space-sm);
+  }
+  .admin-footer {
+    margin: 0;
+    padding: var(--space-md);
+  }
+  .admin-nav a {
+    padding: var(--space-sm) var(--space-xs);
+  }
+}
