@@ -43,9 +43,13 @@ export function resources(env: Env): { db: D1Database; bucket: R2Bucket } {
     throw new HttpError(503, '图片空间尚未连接，请配置 D1（DB）和 R2（IMAGES）绑定后重新部署。');
   return { db: env.DB, bucket: env.IMAGES };
 }
-export async function limitedBody(request: Request, limit: number) {
+export async function limitedBody(
+  request: Request,
+  limit: number,
+  message = '文件超过 8 MiB 限制。',
+) {
   const size = Number(request.headers.get('Content-Length'));
-  if (size > limit) throw new HttpError(413, '文件超过 8 MiB 限制。');
+  if (size > limit) throw new HttpError(413, message);
   const reader = request.body?.getReader();
   if (!reader) throw new HttpError(400, '没有收到图片内容。');
   const chunks: Uint8Array[] = [];
@@ -57,7 +61,7 @@ export async function limitedBody(request: Request, limit: number) {
       total += value.byteLength;
       if (total > limit) {
         await reader.cancel();
-        throw new HttpError(413, '文件超过 8 MiB 限制。');
+        throw new HttpError(413, message);
       }
       chunks.push(value);
     }

@@ -1,1 +1,1 @@
-{"version":1,"include":["/api/*","/images/*"],"exclude":[]}
+{"version":1,"include":["/api/*","/images/*","/journal/*","/sitemap.xml"],"exclude":[]}

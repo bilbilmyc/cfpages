@@ -1,7 +1,6 @@
 import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router-dom';
 import App from './App';
-import { articles } from './content/articles';
 import { site } from './config';
 
 export const pages = [
@@ -16,11 +15,6 @@ export const pages = [
     title: `关于 · ${site.name}`,
     description: '关于这个个人空间，以及内容与隐私说明。',
   },
-  ...articles.map((article) => ({
-    path: `/journal/${article.slug}`,
-    title: `${article.title} · ${site.name}`,
-    description: article.summary,
-  })),
 ];
 export function render(path: string) {
   return renderToString(

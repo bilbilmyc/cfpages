@@ -8,10 +8,11 @@ import {
   CornerDownRight,
   ArrowRight,
 } from 'lucide-react';
-import { articles } from '../content/articles';
+import { usePublishedPosts } from '../lib/usePublishedPosts';
 import { site } from '../config';
 import { TextLink } from '../components/ui';
 export default function Home() {
+  const { posts: articles, loading, error } = usePublishedPosts();
   return (
     <div className="home">
       <header className="welcome">
@@ -107,12 +108,21 @@ export default function Home() {
                 <h3>{a.title}</h3>
                 <p>{a.summary}</p>
               </div>
-              {a.sample && <span className="sample-label">示例</span>}
               <ArrowUpRight size={20} />
             </Link>
           ))}
         </div>
       </section>
+      {loading && <p role="status">正在加载最近的笔记…</p>}
+      {error && <p className="muted">笔记暂时无法加载，请稍后再试。</p>}
+      {!loading && !error && !articles.length && (
+        <p className="muted">
+          第一篇笔记，正在酝酿。
+          <Link className="text-link" to="/admin">
+            进入写作后台
+          </Link>
+        </p>
+      )}
       <aside className="home-note">
         <CornerDownRight size={18} />
         <p>这里没有完成时。笔记会更新，工具会变好，想法也会继续生长。</p>

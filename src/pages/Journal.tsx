@@ -1,43 +1,60 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Search, ArrowLeft, ArrowUpRight } from 'lucide-react';
-import { articles } from '../content/articles';
-import { PageTitle } from '../components/ui';
+import { PageTitle, Notice } from '../components/ui';
+import { requestJSON, type PublicPost } from '../lib/posts';
+import { usePublishedPosts } from '../lib/usePublishedPosts';
+import { site } from '../config';
 export default function Journal() {
   const { slug } = useParams();
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('全部');
-  if (slug) {
-    const article = articles.find((a) => a.slug === slug);
-    return article ? (
-      <article className="reader">
-        <Link className="text-link" to="/journal">
-          <ArrowLeft size={16} />
-          返回文章
-        </Link>
-        <p className="article-meta">
-          {article.category} · {article.date}
-          {article.sample ? ' · 示例内容' : ''}
-        </p>
-        <h1>{article.title}</h1>
-        <p className="reader-summary">{article.summary}</p>
-        <div className="prose">
-          <ReactMarkdown>{article.body}</ReactMarkdown>
-        </div>
-      </article>
-    ) : (
-      <div className="empty">
-        <h1>没有找到这篇文章</h1>
-        <Link to="/journal">返回文章列表</Link>
-      </div>
-    );
-  }
-  const filtered = articles.filter(
-    (a) =>
-      (category === '全部' || a.category === category) &&
-      `${a.title}${a.summary}${a.body}`.toLowerCase().includes(query.toLowerCase()),
+  return slug ? <Article key={slug} slug={slug} /> : <ArticleList />;
+}
+function Article({ slug }: { slug: string }) {
+  const [article, setArticle] = useState<PublicPost | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const controller = new AbortController();
+    requestJSON<PublicPost>(`/api/posts/${encodeURIComponent(slug)}`, { signal: controller.signal })
+      .then((a) => {
+        setArticle(a);
+        document.title = `${a.title} · ${site.name}`;
+        document.querySelector('meta[name="description"]')?.setAttribute('content', a.summary);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setError(e.message);
+      });
+    return () => controller.abort();
+  }, [slug]);
+  return (
+    <article className="reader">
+      <Link className="text-link" to="/journal">
+        <ArrowLeft size={16} />
+        返回文章
+      </Link>
+      {error ? (
+        <Notice error>{error}</Notice>
+      ) : !article ? (
+        <p role="status">正在打开文章…</p>
+      ) : (
+        <>
+          <p className="article-meta">
+            {article.category} · {article.date}
+          </p>
+          <h1>{article.title}</h1>
+          <p className="reader-summary">{article.summary}</p>
+          <div className="prose">
+            <ReactMarkdown>{article.body}</ReactMarkdown>
+          </div>
+        </>
+      )}
+    </article>
   );
+}
+function ArticleList() {
+  const [query, setQuery] = useState(''),
+    [offset, setOffset] = useState(0);
+  const { posts, next, loading, error } = usePublishedPosts(query, offset);
   return (
     <>
       <PageTitle
@@ -45,56 +62,66 @@ export default function Journal() {
         description="把遇到的问题、学到的东西和偶尔闪过的灵感，留在这里。"
       />
       <div className="filter-bar">
-        <div className="tabs" aria-label="文章分类">
-          {['全部', ...new Set(articles.map((a) => a.category))].map((c) => (
-            <button key={c} aria-pressed={c === category} onClick={() => setCategory(c)}>
-              {c}
-            </button>
-          ))}
-        </div>
         <label className="search">
           <Search size={17} />
           <input
             aria-label="搜索文章"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索笔记…"
+            maxLength={100}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOffset(0);
+            }}
+            placeholder="搜索文章、正文或分类…"
           />
         </label>
+        <Link className="text-link" to="/admin">
+          站主写作 <ArrowUpRight size={16} />
+        </Link>
       </div>
-      {articles.some((a) => a.sample) && (
-        <p className="muted small-text">标注“示例”的文章用于展示阅读体验。</p>
-      )}
-      <div className="article-rows">
-        {filtered.map((a) => (
-          <Link key={a.slug} className="article-row" to={`/journal/${a.slug}`}>
-            <span className="article-category">{a.category}</span>
-            <div>
-              <h2>{a.title}</h2>
-              <p>{a.summary}</p>
-              <small>
-                {a.date}
-                {a.sample ? ' · 示例' : ''}
-              </small>
+      {loading ? (
+        <p role="status">正在整理笔记…</p>
+      ) : error ? (
+        <Notice error>{error}</Notice>
+      ) : (
+        <>
+          <div className="article-rows">
+            {posts.map((a) => (
+              <Link key={a.slug} className="article-row" to={`/journal/${a.slug}`}>
+                <span className="article-category">{a.category}</span>
+                <div>
+                  <h2>{a.title}</h2>
+                  <p>{a.summary}</p>
+                  <small>{a.date}</small>
+                </div>
+                <ArrowUpRight size={22} />
+              </Link>
+            ))}
+          </div>
+          {!posts.length && (
+            <div className="empty">
+              <h2>{query ? '没有匹配的笔记' : '第一篇笔记，正在酝酿'}</h2>
+              <p>{query ? '试试其他关键词。' : '发布后的文章会出现在这里。'}</p>
+              {query && (
+                <button className="button" onClick={() => setQuery('')}>
+                  清除搜索
+                </button>
+              )}
             </div>
-            <ArrowUpRight size={22} />
-          </Link>
-        ))}
-      </div>
-      {!filtered.length && (
-        <div className="empty">
-          <h2>暂时没有匹配的笔记</h2>
-          <p>换一个关键词，或查看全部分类。</p>
-          <button
-            className="button"
-            onClick={() => {
-              setQuery('');
-              setCategory('全部');
-            }}
-          >
-            清除筛选
-          </button>
-        </div>
+          )}
+          <div className="editor-toolbar">
+            {offset > 0 && (
+              <button className="button" onClick={() => setOffset(Math.max(0, offset - 20))}>
+                上一页
+              </button>
+            )}
+            {next !== null && (
+              <button className="button" onClick={() => setOffset(next)}>
+                下一页
+              </button>
+            )}
+          </div>
+        </>
       )}
     </>
   );

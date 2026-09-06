@@ -12,7 +12,6 @@ import {
   Leaf,
 } from 'lucide-react';
 import { site } from './config';
-import { articles } from './content/articles';
 import Home from './pages/Home';
 import Journal from './pages/Journal';
 import About from './pages/About';
@@ -21,6 +20,7 @@ const Flow = lazy(() => import('./pages/Flow'));
 const Canvas = lazy(() => import('./pages/Canvas'));
 const DevTools = lazy(() => import('./pages/DevTools'));
 const Images = lazy(() => import('./pages/Images'));
+const Admin = lazy(() => import('./pages/Admin'));
 const links = [
   { to: '/', label: '工作台', icon: House },
   { to: '/journal', label: '文章与分享', icon: BookOpen },
@@ -33,18 +33,17 @@ export default function App() {
   const location = useLocation();
   const pathname = location.pathname.replace(/\/$/, '') || '/';
   useEffect(() => {
-    const article = articles.find((a) => `/journal/${a.slug}` === pathname);
     const title =
-      article?.title ||
       links.find((item) => item.to === pathname)?.label ||
-      (pathname.startsWith('/journal/') ? '阅读文章' : '关于');
+      (pathname === '/admin' ? '写作后台' : pathname.startsWith('/journal/') ? '阅读文章' : '关于');
     document.title = `${title} · ${site.name}`;
     document
       .querySelector('link[rel="canonical"]')
       ?.setAttribute('href', `https://${site.domain}${pathname}`);
     document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title);
-    if (article)
-      document.querySelector('meta[name="description"]')?.setAttribute('content', article.summary);
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute('content', '记录技术、分享思考与打磨小工具的个人空间。');
     window.scrollTo(0, 0);
     document.getElementById('main')?.focus({ preventScroll: true });
   }, [pathname]);
@@ -79,6 +78,11 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
+          <NavLink to="/admin">
+            <PencilRuler size={17} />
+            写作后台
+            <ArrowUpRight size={14} />
+          </NavLink>
           <NavLink to="/about">
             <Leaf size={17} />
             关于这个空间
@@ -117,6 +121,7 @@ export default function App() {
                 <Route path="/tools/canvas" element={<Canvas />} />
                 <Route path="/tools/dev" element={<DevTools />} />
                 <Route path="/images" element={<Images />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route path="/about" element={<About />} />
                 <Route
                   path="*"
