@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cfpages",
+  "account_id": "ad2268c4f3e4023b82b526ea6bd5696a",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [{ "binding": "DB", "database_name": "personal-site-db", "database_id": "2abf91e2-f66e-4829-9fa1-b0065bf38a27", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "personal-site-images" }]
+}

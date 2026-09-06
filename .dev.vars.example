@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local Cloudflare emulation. Use a different secret in production.
+ADMIN_TOKEN=replace-with-at-least-32-random-characters
+# Optional: R2 custom public domain, without a trailing slash.
+# IMAGE_PUBLIC_BASE=https://images.example.com

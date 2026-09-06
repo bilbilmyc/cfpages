@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "YOUR_EXISTING_PAGES_PROJECT",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "YOUR_EXISTING_D1_NAME",
+      "database_id": "YOUR_EXISTING_D1_ID",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "YOUR_EXISTING_R2_BUCKET" }],
+}

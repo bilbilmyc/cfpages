@@ -1,0 +1,40 @@
+{
+  "name": "soren-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && node scripts/prerender.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "dev:cloud": "npm run build && wrangler pages dev dist --persist-to .wrangler/state",
+    "db:local": "wrangler d1 execute DB --local --file migrations/0001_initial.sql --persist-to .wrangler/state",
+    "test": "vitest run",
+    "test:api": "node scripts/test-api.mjs",
+    "format": "prettier --write src server functions tests tokens.css",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.8.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260903.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "prettier": "^3.9.6",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.33.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
