@@ -7,8 +7,6 @@ import {
   addEdge,
   useEdgesState,
   useNodesState,
-  type Node,
-  type Edge,
   type Connection,
   MarkerType,
 } from '@xyflow/react';
@@ -18,7 +16,8 @@ import { PageTitle, Notice, download } from '../components/ui';
 import CloudSync from '../components/CloudSync';
 import { useCloudDraft } from '../lib/cloudDraft';
 import { readLocal, saveLocal } from '../lib/storage';
-type Diagram = { nodes: Node[]; edges: Edge[] };
+import { cleanDiagram, validDiagram, type Diagram } from '../lib/toolDocumentData';
+import SaveDocument from '../components/documents/SaveDocument';
 const initial: Diagram = {
   nodes: [
     { id: '1', position: { x: 220, y: 0 }, data: { label: '一个想法' }, type: 'input' },
@@ -32,49 +31,12 @@ const initial: Diagram = {
     { id: 'e3', source: '2', target: '4' },
   ],
 };
-export function validDiagram(v: unknown): v is Diagram {
-  if (!v || typeof v !== 'object') return false;
-  const d = v as Diagram;
-  if (
-    !Array.isArray(d.nodes) ||
-    !Array.isArray(d.edges) ||
-    d.nodes.length > 500 ||
-    d.edges.length > 2000
-  )
-    return false;
-  if (
-    !d.nodes.every(
-      (n) =>
-        n &&
-        typeof n.id === 'string' &&
-        typeof n.data?.label === 'string' &&
-        n.data.label.length <= 200 &&
-        Number.isFinite(n.position?.x) &&
-        Number.isFinite(n.position?.y) &&
-        (!n.type || ['input', 'output', 'default'].includes(n.type)),
-    )
-  )
-    return false;
-  const ids = new Set(d.nodes.map((n) => n.id));
-  return (
-    ids.size === d.nodes.length &&
-    d.edges.every((e) => e && typeof e.id === 'string' && ids.has(e.source) && ids.has(e.target)) &&
-    new Set(d.edges.map((e) => e.id)).size === d.edges.length
+export default function Flow({
+  file,
+}: { file?: { initial: Diagram; onChange: (value: Diagram) => void } } = {}) {
+  const [saved] = useState(() =>
+    cleanDiagram(file?.initial ?? readLocal('studio-flow-v1', initial, validDiagram)),
   );
-}
-function cleanDiagram(d: Diagram): Diagram {
-  return {
-    nodes: d.nodes.map(({ id, position, data, type }) => ({
-      id,
-      position: { x: position.x, y: position.y },
-      data: { label: data.label },
-      type,
-    })),
-    edges: d.edges.map(({ id, source, target }) => ({ id, source, target })),
-  };
-}
-export default function Flow() {
-  const [saved] = useState(() => cleanDiagram(readLocal('studio-flow-v1', initial, validDiagram)));
   const [nodes, setNodes, onNodesChange] = useNodesState(saved.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(saved.edges);
   const [label, setLabel] = useState('新的步骤');
@@ -92,20 +54,25 @@ export default function Flow() {
       setSelected(null);
     },
     validDiagram,
+    !file,
   );
   useEffect(
     () => () => {
-      saveLocal('studio-flow-v1', latest.current);
+      if (!file) saveLocal('studio-flow-v1', latest.current);
     },
     [],
   );
   useEffect(() => {
+    if (file) {
+      file.onChange(cleanDiagram({ nodes, edges }));
+      return;
+    }
     const timer = setTimeout(
       () => setStorageOK(saveLocal('studio-flow-v1', { nodes, edges })),
       350,
     );
     return () => clearTimeout(timer);
-  }, [nodes, edges]);
+  }, [nodes, edges, file?.onChange]);
   const connect = useCallback(
     (connection: Connection) => setEdges((e) => (e.length < 2000 ? addEdge(connection, e) : e)),
     [setEdges],
@@ -146,7 +113,9 @@ export default function Flow() {
         title="流程图"
         description="把想法展开，让每一步都清楚。拖动节点，从连接点拉出一条线。"
       >
-        <span className="badge">{sync.status === 'on' ? '本地 + 云端' : '本地草稿'}</span>
+        <span className="badge">
+          {file ? '云端文件' : sync.status === 'on' ? '本地 + 云端' : '本地草稿'}
+        </span>
       </PageTitle>
       <div className="editor-toolbar">
         <label className="inline-field">
@@ -173,7 +142,12 @@ export default function Flow() {
           更新选中
         </button>
         <div className="toolbar-spacer" />
-        <CloudSync sync={sync} />
+        {!file && (
+          <>
+            <SaveDocument kind="flow" content={cleanDiagram({ nodes, edges })} />
+            <CloudSync sync={sync} />
+          </>
+        )}
         <button
           className="button"
           onClick={() => download(JSON.stringify({ nodes, edges }, null, 2), 'flow.json')}
@@ -235,7 +209,12 @@ export default function Flow() {
           {nodes.length} 个节点 · {edges.length} 条连线
         </span>
         <span>
-          {storageOK ? '自动保存到当前浏览器' : '本地存储不可用，请导出备份'} · 选中后按 Delete 删除
+          {file
+            ? '当前文件独立保存'
+            : storageOK
+              ? '自动保存到当前浏览器'
+              : '本地存储不可用，请导出备份'}{' '}
+          · 选中后按 Delete 删除
         </span>
       </div>
       {message && <Notice>{message}</Notice>}

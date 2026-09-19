@@ -7,16 +7,25 @@ import About from './pages/About';
 import SiteHeader from './components/SiteHeader';
 import PageBoundary from './components/PageBoundary';
 import Journal from './pages/Journal';
+import { WorkspaceSession } from './components/documents/WorkspaceSession';
+const DocumentPage = lazy(() => import('./pages/Document'));
 const Flow = lazy(() => import('./pages/Flow'));
 const Canvas = lazy(() => import('./pages/Canvas'));
 const DevTools = lazy(() => import('./pages/DevTools'));
 const AdminArea = lazy(() => import('./components/AdminArea'));
 export default function App() {
+  return (
+    <WorkspaceSession>
+      <Application />
+    </WorkspaceSession>
+  );
+}
+function Application() {
   const location = useLocation();
   const pathname = location.pathname.replace(/\/$/, '') || '/';
   useEffect(() => {
     const title =
-      tools.find((t) => t.to === pathname)?.label ||
+      tools.find((t) => t.to === pathname || pathname.startsWith(t.to + '/'))?.label ||
       (pathname === '/'
         ? '工作台'
         : pathname.startsWith('/admin')
@@ -73,7 +82,9 @@ export default function App() {
               <Route path="/journal" element={<Journal />} />
               <Route path="/journal/:slug" element={<Journal />} />
               <Route path="/tools/flow" element={<Flow />} />
+              <Route path="/tools/flow/:id" element={<DocumentPage kind="flow" />} />
               <Route path="/tools/canvas" element={<Canvas />} />
+              <Route path="/tools/canvas/:id" element={<DocumentPage kind="canvas" />} />
               <Route path="/tools/dev" element={<DevTools />} />
               <Route path="/about" element={<About />} />
               <Route

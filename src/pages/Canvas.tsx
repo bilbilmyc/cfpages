@@ -4,34 +4,13 @@ import { PageTitle, Notice } from '../components/ui';
 import CloudSync from '../components/CloudSync';
 import { useCloudDraft } from '../lib/cloudDraft';
 import { readLocal, saveLocal } from '../lib/storage';
-type Point = { x: number; y: number };
-type Stroke = { kind: 'pen' | 'rect' | 'ellipse'; color: string; width: number; points: Point[] };
-const colors = ['#2c503e', '#29312c', '#a94a35', '#375f99'];
-function validStrokes(v: unknown): v is Stroke[] {
-  return (
-    Array.isArray(v) &&
-    v.length <= 2000 &&
-    v.every(
-      (s) =>
-        s &&
-        ['pen', 'rect', 'ellipse'].includes(s.kind) &&
-        colors.includes(s.color) &&
-        [2, 4, 8].includes(s.width) &&
-        Array.isArray(s.points) &&
-        s.points.length <= 10000 &&
-        s.points.every(
-          (p: Point) =>
-            p &&
-            Number.isFinite(p.x) &&
-            Number.isFinite(p.y) &&
-            p.x >= 0 &&
-            p.x <= 1200 &&
-            p.y >= 0 &&
-            p.y <= 720,
-        ),
-    )
-  );
-}
+import {
+  canvasColors as colors,
+  validStrokes,
+  type Stroke,
+  type Point,
+} from '../lib/toolDocumentData';
+import SaveDocument from '../components/documents/SaveDocument';
 function paint(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
   ctx.clearRect(0, 0, 1200, 720);
   ctx.fillStyle = '#fbfcf8';
@@ -66,11 +45,13 @@ function paint(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
     ctx.stroke();
   }
 }
-export default function Canvas() {
+export default function Canvas({
+  file,
+}: { file?: { initial: Stroke[]; onChange: (value: Stroke[]) => void } } = {}) {
   const ref = useRef<HTMLCanvasElement>(null);
   const active = useRef<Stroke | null>(null);
-  const [strokes, setStrokes] = useState(() =>
-    readLocal('studio-canvas-v1', [] as Stroke[], validStrokes),
+  const [strokes, setStrokes] = useState(
+    () => file?.initial ?? readLocal('studio-canvas-v1', [] as Stroke[], validStrokes),
   );
   const [redo, setRedo] = useState<Stroke[][]>([]);
   const [undo, setUndo] = useState<Stroke[][]>([]);
@@ -87,12 +68,14 @@ export default function Canvas() {
       setRedo([]);
     },
     validStrokes,
+    !file,
   );
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (ctx) paint(ctx, strokes);
-    setOK(saveLocal('studio-canvas-v1', strokes));
-  }, [strokes]);
+    if (file) file.onChange(strokes);
+    else setOK(saveLocal('studio-canvas-v1', strokes));
+  }, [strokes, file?.onChange]);
   const point = (e: PointerEvent<HTMLCanvasElement>): Point => {
     const r = e.currentTarget.getBoundingClientRect();
     return {
@@ -114,7 +97,9 @@ export default function Canvas() {
   return (
     <>
       <PageTitle title="自由画布" description="不必想得很完整，先画下来。支持鼠标、触控和触控笔。">
-        <span className="badge">{sync.status === 'on' ? '本地 + 云端' : '本地草稿'}</span>
+        <span className="badge">
+          {file ? '云端文件' : sync.status === 'on' ? '本地 + 云端' : '本地草稿'}
+        </span>
       </PageTitle>
       <div className="editor-toolbar">
         <div className="tabs">
@@ -179,7 +164,12 @@ export default function Canvas() {
           <Trash2 size={16} />
           清空
         </button>
-        <CloudSync sync={sync} />
+        {!file && (
+          <>
+            <SaveDocument kind="canvas" content={strokes} />
+            <CloudSync sync={sync} />
+          </>
+        )}
         <button
           className="button primary"
           onClick={() => {
@@ -220,7 +210,10 @@ export default function Canvas() {
       </div>
       <div className="editor-foot">
         <span>1200 × 720 · {strokes.length} 笔</span>
-        <span>草稿自动保存 · 清空可撤销 · 最多 2000 笔 · 连接云同步后多设备可用</span>
+        <span>
+          {file ? '当前文件独立保存' : '草稿自动保存 · 连接云同步后多设备可用'} · 清空可撤销 · 最多
+          2000 笔
+        </span>
       </div>
       {!ok && <Notice error>无法保存到浏览器，请导出 PNG 备份。</Notice>}
     </>

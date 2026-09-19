@@ -19,6 +19,7 @@ export function useCloudDraft<T>(
   value: T,
   apply: (remote: T) => void,
   isValid: (v: unknown) => v is T,
+  enabled = true,
 ): CloudSyncControls {
   const [status, setStatus] = useState<SyncStatus>('off');
   const [busy, setBusy] = useState(false);
@@ -87,7 +88,7 @@ export function useCloudDraft<T>(
   );
 
   useEffect(() => {
-    if (status !== 'on' || busy) return;
+    if (!enabled || status !== 'on' || busy) return;
     const timer = setTimeout(async () => {
       if (active.current || !token.current) return;
       const content = JSON.stringify(current.current);
@@ -124,7 +125,7 @@ export function useCloudDraft<T>(
       }
     }, 800);
     return () => clearTimeout(timer);
-  }, [value, status, busy, path]);
+  }, [value, status, busy, path, enabled]);
 
   const disconnect = useCallback(() => {
     active.current?.abort();
@@ -139,6 +140,7 @@ export function useCloudDraft<T>(
     setError('');
   }, []);
   const reload = useCallback(async () => {
+    if (!enabled) return;
     const credential = token.current || sessionCredential;
     if (!credential) return;
     try {
@@ -146,7 +148,7 @@ export function useCloudDraft<T>(
     } catch {
       /* read exposes the error to the UI */
     }
-  }, [read]);
+  }, [read, enabled]);
   useEffect(() => {
     try {
       sessionStorage.removeItem('studio-tool-sync-token');

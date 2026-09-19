@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build && node scripts/prerender.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "dev:cloud": "npm run build && wrangler pages dev dist --persist-to .wrangler/state",
-    "db:local": "wrangler d1 execute DB --local --file migrations/0001_initial.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0002_posts.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0003_tool_drafts.sql --persist-to .wrangler/state",
+    "db:local": "wrangler d1 execute DB --local --file migrations/0001_initial.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0002_posts.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0003_tool_drafts.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0004_tool_documents.sql --persist-to .wrangler/state",
     "test": "vitest run",
     "test:api": "node scripts/test-api.mjs",
     "test:posts": "node scripts/test-posts.mjs",
@@ -16,7 +16,8 @@
     "check": "npm run build && npm test",
     "dev:local": "npm run build && node scripts/local.mjs",
     "db:preview": "node scripts/local.mjs setup",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:documents": "node scripts/test-documents.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.8.0",
