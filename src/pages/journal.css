@@ -1,3 +1,4 @@
+/* Hallmark · macrostructure: Ecosystem Index · design-system: design.md · designed-as-app */
 .journal-page .filter-bar {
   align-items: center;
   justify-content: flex-start;
@@ -14,25 +15,6 @@
 }
 .journal-page .filter-bar > p {
   margin-left: auto;
-}
-.journal-page .article-row {
-  padding-block: var(--space-lg);
-}
-.journal-page .article-row h2 {
-  font: 600 1.375rem/1.6 var(--font-display);
-  overflow-wrap: anywhere;
-}
-.journal-page .article-row p {
-  font-size: 0.9375rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.journal-page .article-row small {
-  display: block;
-  margin-top: var(--space-sm);
-  font-family: var(--font-mono);
 }
 .reader {
   scroll-margin-top: var(--space-lg);
@@ -80,9 +62,6 @@
   .journal-page .filter-bar > p {
     margin-left: 0;
     flex-basis: 100%;
-  }
-  .journal-page .article-row h2 {
-    font-size: 1.125rem;
   }
   .reader .article-meta {
     margin-top: var(--space-lg);

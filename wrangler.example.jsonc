@@ -12,4 +12,17 @@
     },
   ],
   "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "YOUR_EXISTING_R2_BUCKET" }],
+  "env": {
+    "preview": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "YOUR_SEPARATE_PREVIEW_D1_NAME",
+          "database_id": "YOUR_SEPARATE_PREVIEW_D1_ID",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "YOUR_SEPARATE_PREVIEW_R2_BUCKET" }],
+    },
+  },
 }

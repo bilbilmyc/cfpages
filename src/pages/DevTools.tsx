@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
 import { PageTitle, Notice, CopyButton } from '../components/ui';
 import { transform, type Operation } from '../lib/transforms';
@@ -44,8 +45,11 @@ const groups = [
   },
 ];
 export default function DevTools() {
-  const [group, setGroup] = useState(groups[0]);
-  const [input, setInput] = useState('{"hello": "世界", "ideas": ["记录", "创造"]}');
+  const [params, setParams] = useSearchParams();
+  const group = groups.find((item) => item.id === params.get('tool')) || groups[0];
+  const [input, setInput] = useState(
+    group.id === 'json' ? '{"hello": "世界", "ideas": ["记录", "创造"]}' : '',
+  );
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -64,14 +68,17 @@ export default function DevTools() {
   }
   return (
     <>
-      <PageTitle title="开发工具" description="日常开发里的小事，在这里顺手解决。" />
+      <PageTitle
+        title="开发工具"
+        description="JSON、编码、日期和哈希计算，均在当前浏览器内完成。"
+      />
       <div className="tabs tool-tabs">
         {groups.map((g) => (
           <button
             key={g.id}
             aria-pressed={group.id === g.id}
             onClick={() => {
-              setGroup(g);
+              setParams({ tool: g.id });
               setInput('');
               setOutput('');
               setError('');

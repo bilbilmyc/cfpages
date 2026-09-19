@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { requestJSON, type PostSummary } from './posts';
 export function usePublishedPosts(query = '', offset = 0) {
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
     posts: PostSummary[];
     next: number | null;
@@ -28,6 +29,6 @@ export function usePublishedPosts(query = '', offset = 0) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, offset]);
-  return state;
+  }, [query, offset, attempt]);
+  return { ...state, retry: () => setAttempt((value) => value + 1) };
 }

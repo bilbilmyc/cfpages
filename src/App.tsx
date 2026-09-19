@@ -1,160 +1,104 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { NavLink, Route, Routes, useLocation, Link, Navigate } from 'react-router-dom';
-import {
-  House,
-  BookOpen,
-  Workflow,
-  PencilRuler,
-  Braces,
-  ArrowUpRight,
-  Github,
-  Leaf,
-} from 'lucide-react';
+import { Route, Routes, useLocation, Link, Navigate } from 'react-router-dom';
 import { site } from './config';
+import { tools } from './config/navigation';
 import Home from './pages/Home';
-import Journal from './pages/Journal';
 import About from './pages/About';
+import SiteHeader from './components/SiteHeader';
 import PageBoundary from './components/PageBoundary';
+import Journal from './pages/Journal';
 const Flow = lazy(() => import('./pages/Flow'));
 const Canvas = lazy(() => import('./pages/Canvas'));
 const DevTools = lazy(() => import('./pages/DevTools'));
 const AdminArea = lazy(() => import('./components/AdminArea'));
-const links = [
-  { to: '/', label: '首页', icon: House },
-  { to: '/journal', label: '文章与分享', icon: BookOpen },
-  { to: '/tools/flow', label: '流程图', icon: Workflow },
-  { to: '/tools/canvas', label: '自由画布', icon: PencilRuler },
-  { to: '/tools/dev', label: '开发工具', icon: Braces },
-];
 export default function App() {
   const location = useLocation();
   const pathname = location.pathname.replace(/\/$/, '') || '/';
   useEffect(() => {
     const title =
-      links.find((item) => item.to === pathname)?.label ||
-      (pathname.startsWith('/admin')
-        ? '站主管理'
-        : pathname.startsWith('/journal/')
-          ? '阅读文章'
-          : '关于');
-    document.title = `${title} · ${site.name}`;
+      tools.find((t) => t.to === pathname)?.label ||
+      (pathname === '/'
+        ? '工作台'
+        : pathname.startsWith('/admin')
+          ? '站主管理'
+          : pathname.startsWith('/journal')
+            ? '文章'
+            : '关于');
+    document.title = title + ' · ' + site.name;
     document
       .querySelector('link[rel="canonical"]')
-      ?.setAttribute('href', `https://${site.domain}${pathname}`);
+      ?.setAttribute('href', 'https://' + site.domain + pathname);
     document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title);
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute('content', '记录技术、分享思考与打磨小工具的个人空间。');
     window.scrollTo(0, 0);
     document.getElementById('main')?.focus({ preventScroll: true });
   }, [pathname]);
   if (pathname === '/images') return <Navigate to="/admin/images" replace />;
   if (pathname === '/admin' || pathname.startsWith('/admin/'))
     return (
-      <Suspense
-        fallback={
-          <p className="loading" role="status">
-            正在打开管理后台…
-          </p>
-        }
-      >
-        <AdminArea />
-      </Suspense>
+      <PageBoundary>
+        <Suspense
+          fallback={
+            <p className="loading" role="status">
+              正在打开管理后台…
+            </p>
+          }
+        >
+          <AdminArea />
+        </Suspense>
+      </PageBoundary>
     );
   return (
-    <div className="app-shell">
+    <div className="workspace-shell">
       <a className="skip-link" href="#main">
         跳到主要内容
       </a>
-      <aside className="sidebar">
-        <Link className="brand" to="/" aria-label="返回首页">
-          <span className="brand-mark">s.</span>
-          <span>
-            {site.author}
-            <small>数字花园 / DIGITAL GARDEN</small>
-          </span>
-        </Link>
-        <div className="sidebar-intro">
-          记录所见，
-          <br />
-          也动手做点什么。
+      <SiteHeader />
+      <main
+        id="main"
+        className={
+          pathname.startsWith('/tools/') ? 'workspace-main tool-workspace' : 'workspace-main'
+        }
+        tabIndex={-1}
+      >
+        <PageBoundary key={pathname}>
+          <Suspense
+            fallback={
+              <div className="loading" role="status">
+                正在打开页面…
+              </div>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/journal" element={<Journal />} />
+              <Route path="/journal/:slug" element={<Journal />} />
+              <Route path="/tools/flow" element={<Flow />} />
+              <Route path="/tools/canvas" element={<Canvas />} />
+              <Route path="/tools/dev" element={<DevTools />} />
+              <Route path="/about" element={<About />} />
+              <Route
+                path="*"
+                element={
+                  <section className="empty">
+                    <h1>页面不存在</h1>
+                    <p>请检查地址，或返回工作台选择工具。</p>
+                    <Link className="button" to="/">
+                      返回工作台
+                    </Link>
+                  </section>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </PageBoundary>
+      </main>
+      <footer className="workspace-footer">
+        <Link to="/">{site.author} 的工作台</Link>
+        <div>
+          <span>{site.domain}</span>
+          <Link to="/about">关于与隐私</Link>
         </div>
-        <nav aria-label="主要导航">
-          {links.map(({ to, label, icon: Icon }, i) => (
-            <div key={to}>
-              {i === 2 && <p className="nav-label">随手可用的工具</p>}
-              <NavLink end={to === '/'} to={to}>
-                <Icon size={18} strokeWidth={1.65} />
-                <span>{label}</span>
-                {i === 0 && <span className="nav-dot" />}
-              </NavLink>
-            </div>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <NavLink to="/about">
-            <Leaf size={17} />
-            关于这个空间
-            <ArrowUpRight size={14} />
-          </NavLink>
-          <a href={site.github} target="_blank" rel="noreferrer">
-            <Github size={17} />
-            GitHub
-            <ArrowUpRight size={14} />
-          </a>
-          <span className="domain">{site.domain}</span>
-        </div>
-      </aside>
-      <div className="main-shell">
-        <div className="topbar">
-          <span>一个持续生长的个人空间</span>
-          <span className="topbar-note">
-            <span className="green-dot" />
-            保持好奇，持续创造
-          </span>
-        </div>
-        <main id="main" tabIndex={-1}>
-          <PageBoundary key={pathname}>
-            <Suspense
-              fallback={
-                <div className="loading" role="status">
-                  正在打开工具…
-                </div>
-              }
-            >
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/journal" element={<Journal />} />
-                <Route path="/journal/:slug" element={<Journal />} />
-                <Route path="/tools/flow" element={<Flow />} />
-                <Route path="/tools/canvas" element={<Canvas />} />
-                <Route path="/tools/dev" element={<DevTools />} />
-                <Route path="/about" element={<About />} />
-                <Route
-                  path="*"
-                  element={
-                    <section className="empty">
-                      <h1>这条小路还没有铺好</h1>
-                      <p>页面不存在，回到工作台继续探索吧。</p>
-                      <Link className="button" to="/">
-                        返回工作台
-                      </Link>
-                    </section>
-                  }
-                />
-              </Routes>
-            </Suspense>
-          </PageBoundary>
-        </main>
-        <footer>
-          <span>
-            © {new Date().getFullYear()} {site.author} · 一点思考，一些创造。
-          </span>
-          <Link to="/about">
-            关于与隐私 <ArrowUpRight size={13} />
-          </Link>
-        </footer>
-      </div>
+      </footer>
     </div>
   );
 }

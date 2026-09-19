@@ -12,8 +12,8 @@ const fields = {
 };
 const api = (path, init = {}) => fetch(`${base}${path}`, init);
 assert.equal((await api('/api/admin/posts')).status, 401);
-assert.equal((await api('/api/admin/session')).status,401);
-assert.equal((await api('/api/admin/session',{headers})).status,200);
+assert.equal((await api('/api/admin/session')).status, 401);
+assert.equal((await api('/api/admin/session', { headers })).status, 200);
 assert.equal(
   (
     await api('/api/admin/posts', {
@@ -80,3 +80,48 @@ try {
 } finally {
   if (post.published_at) await update('unpublish');
 }
+// Repeatable tool-draft checks on the explicitly local emulator.
+assert.equal((await api('/api/admin/drafts/flow')).status, 401);
+let existing = await (await api('/api/admin/drafts/flow', { headers })).json();
+const payload = { content: JSON.stringify({ nodes: [], edges: [] }), revision: existing.revision };
+r = await api('/api/admin/drafts/flow', { method: 'PUT', headers, body: JSON.stringify(payload) });
+assert.equal(r.status, existing.revision === 0 ? 201 : 200, await r.clone().text());
+let draft = await r.json();
+const writes = await Promise.all(
+  [1, 2].map(() =>
+    api('/api/admin/drafts/flow', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ ...payload, revision: draft.revision }),
+    }),
+  ),
+);
+assert.deepEqual(
+  writes.map((r) => r.status).sort(),
+  [200, 409],
+  'only one concurrent writer may win',
+);
+assert.equal(
+  (
+    await api('/api/admin/drafts/flow', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ ...payload, revision: draft.revision }),
+    })
+  ).status,
+  409,
+);
+assert.equal(
+  (
+    await api('/api/admin/drafts/flow', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ content: 'not json', revision: 9 }),
+    })
+  ).status,
+  400,
+);
+assert.equal((await api('/api/admin/drafts/table', { headers })).status, 404);
+console.log(
+  'Tool drafts passed: authentication, concurrent writers, stale revisions, JSON validation and repeatable setup.',
+);
