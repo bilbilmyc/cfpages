@@ -6,7 +6,7 @@
 
 工具优先：首页直接打开开发工具、流程图和画布，内置可操作的 JSON 格式化/压缩区。Base64、URL、时间戳、哈希支持直接链接到对应工具。文章作为辅助内容保留，管理后台增加已加载文章的关键词与发布状态筛选。
 
-后端统一到 `server/api/`：`app.ts` 管理鉴权和错误边界，文章、图片、云草稿按业务分组；`functions/api/` 保留 Pages 路由入口。D1 表结构、原有文章地址、图片地址和本地草稿格式均兼容。本次没有新增数据迁移，仓库中原有的 `0003_tool_drafts.sql` 仍需在使用云同步前执行。
+后端统一到 `server/api/`：`app.ts` 管理鉴权和错误边界，文章、图片、云草稿按业务分组；`functions/api/` 保留 Pages 路由入口。原有文章表、文章地址、图片地址和本地草稿格式均兼容。相对当前 `main`，本分支新增 `0003_tool_drafts.sql`，使用云同步前必须确认目标 D1 已建表；历史说明不代表当前远程迁移状态。
 
 云同步使用串行保存及数据库版本检查，冲突时停止自动写入；首次写入使用原子插入。请求体有大小上限，草稿按 UTF-8 字节限制 2 MiB。管理员密钥仅保存在页面内存中，刷新后重新连接；不会继续使用旧版 sessionStorage 中的密钥。
 
@@ -36,7 +36,9 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-如果已安装 Chrome，可设置环境变量 `PLAYWRIGHT_CHANNEL=chrome`，使用现有浏览器代替下载 Chromium。浏览器测试只连接固定的本地端口，覆盖文本转换、流程图导出、画布绘制/撤销、文章发布/草稿隔离、慢请求云同步、键盘跳转和六种屏幕宽度。
+如果已安装 Chrome，可设置环境变量 `PLAYWRIGHT_CHANNEL=chrome`，使用现有浏览器代替下载 Chromium。先执行 `npm run build`，再运行 `npm run test:browser`；端口未占用时测试会自动启动隔离的 Pages 服务，本地已有服务时复用它。浏览器测试只连接固定的本地端口，覆盖文本转换、流程图导出、画布绘制/撤销、文章发布/草稿隔离、图片上传/归档恢复、慢请求云同步、键盘跳转和六种屏幕宽度，同时运行两组 API 集成测试。
+
+GitHub Actions 在 PR 和 `main` 提交上运行构建、单元测试及上述浏览器/API 验收；CI 强制启动自己的本地服务，失败时保留 `test-results/` 中的截图与追踪文件 7 天。云端上线还需完成[部署验收与回退](docs/release-acceptance.md)，本地模拟器通过不能替代远程验收。
 
 ## 代码入口
 
@@ -110,7 +112,7 @@ Wrangler 默认本地模拟 R2/D1，数据保存在 `.wrangler/state`，这些�
 - R2：`personal-site-images`，Standard 存储类，绑定名 `IMAGES`。
 - D1 已在控制台执行 `migrations/0001_initial.sql`，创建 `images` 表和分页索引。
 - D1 已执行 `migrations/0002_posts.sql`，创建文章表与索引；草稿和公开快照分开保存，使用版本号防止覆盖。
-- D1 已执行 `migrations/0003_tool_drafts.sql`，创建 `tool_drafts` 表，保存流程图与画布的云端草稿（同样使用版本号防止旧窗口覆盖）。
+- 2026-09-19 控制台实测：生产 D1 尚未执行 `migrations/0003_tool_drafts.sql`，上线前必须补建 `tool_drafts`；独立预览库已执行三份建表 SQL，并确认表和索引存在。完整状态见[验收记录](docs/release-acceptance.md)。
 - `wrangler.jsonc` 保存资源 ID 和绑定；这些是配置标识符，不是凭据。
 
 ## Pages 部署

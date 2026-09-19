@@ -199,14 +199,64 @@ test('owner editor and image manager fit narrow screens', async ({ page }) => {
   for (const width of [320, 375, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByLabel('文章标题', { exact: true })).toBeVisible();
-    const overflow = await page.locator('main').evaluate(main => Array.from(main.querySelectorAll('button,input,textarea')).filter(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.width > 0 && (rect.left < -1 || rect.right > innerWidth + 1);
-    }).map(el => el.outerHTML.slice(0, 160)));
+    const overflow = await page.locator('main').evaluate((main) =>
+      Array.from(main.querySelectorAll('button,input,textarea'))
+        .filter((el) => {
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && (rect.left < -1 || rect.right > innerWidth + 1);
+        })
+        .map((el) => el.outerHTML.slice(0, 160)),
+    );
     expect(overflow, 'editor at ' + width).toEqual([]);
   }
   await page.setViewportSize({ width: 320, height: 900 });
   await page.getByRole('link', { name: '图片管理', exact: true }).click();
   await expect(page.getByRole('heading', { name: '图片管理', exact: true })).toBeVisible();
-  expect(await page.locator('main').evaluate(el => el.getBoundingClientRect().right <= innerWidth)).toBe(true);
+  expect(
+    await page.locator('main').evaluate((el) => el.getBoundingClientRect().right <= innerWidth),
+  ).toBe(true);
+});
+
+test('owner uploads a decodable image, archives it and restores its library entry', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/admin/images');
+  await page.getByLabel('管理员密钥').fill(token);
+  await page.getByRole('button', { name: '登录管理后台' }).click();
+  const filename = `browser-acceptance-${Date.now()}.png`;
+  // A browser-generated PNG also exercises createImageBitmap in the uploader.
+  const data = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 2;
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = '#286f5d';
+    context.fillRect(0, 0, 2, 2);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  const png = Buffer.from(data, 'base64');
+  await page.getByLabel('上传图片', { exact: true }).setInputFiles({
+    name: filename,
+    mimeType: 'image/png',
+    buffer: png,
+  });
+  const link = page.getByLabel(`${filename} 的图片链接`, { exact: true });
+  await expect(link).toBeVisible();
+  const url = await link.inputValue();
+  const image = await request.get(url);
+  expect(image.status()).toBe(200);
+  expect(await image.body()).toEqual(png);
+  await expect(page.getByRole('img', { name: filename, exact: true })).toBeVisible();
+  await page.getByRole('button', { name: `归档 ${filename}`, exact: true }).click();
+  await expect(link).toHaveCount(0);
+  expect((await request.get(url)).status()).toBe(200);
+  await page.getByRole('button', { name: '撤销归档', exact: true }).click();
+  await expect(link).toHaveValue(url);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '站主登录' })).toBeVisible();
+  await page.getByLabel('管理员密钥').fill(token);
+  await page.getByRole('button', { name: '登录管理后台' }).click();
+  await expect(link).toHaveValue(url);
+  await page.getByRole('button', { name: `归档 ${filename}`, exact: true }).click();
+  await expect(link).toHaveCount(0);
 });
