@@ -49,7 +49,7 @@ GitHub Actions 在 PR 和 `main` 提交上运行构建、单元测试及上述�
 - `server/api/`：Hono 路由；`server/http.ts` 与 `server/posts.ts`：验证和数据辅助函数。
 - `tokens.css`、`design.md`：全站设计规范；`src/workspace.css`：工作台与后台布局。
 
-以下是既有功能和生产部署说明。生产资源信息是此前部署记录，本次本地重写没有重新确认或修改线上状态。
+以下是既有功能和生产部署说明。2026-09-19 已重新核验资源并补齐生产云草稿表，当前验收证据与回退步骤见[部署验收记录](docs/release-acceptance.md)。
 
 ## 已实现
 
@@ -112,7 +112,7 @@ Wrangler 默认本地模拟 R2/D1，数据保存在 `.wrangler/state`，这些�
 - R2：`personal-site-images`，Standard 存储类，绑定名 `IMAGES`。
 - D1 已在控制台执行 `migrations/0001_initial.sql`，创建 `images` 表和分页索引。
 - D1 已执行 `migrations/0002_posts.sql`，创建文章表与索引；草稿和公开快照分开保存，使用版本号防止覆盖。
-- 2026-09-19 控制台实测：生产 D1 尚未执行 `migrations/0003_tool_drafts.sql`，上线前必须补建 `tool_drafts`；独立预览库已执行三份建表 SQL，并确认表和索引存在。完整状态见[验收记录](docs/release-acceptance.md)。
+- 2026-09-19 验收时发现生产缺少 `tool_drafts`，备份并核验后已执行 `migrations/0003_tool_drafts.sql`；独立预览库也已执行三份建表 SQL。两边均确认三张业务表存在，控制台执行的迁移尚未注册 Wrangler 迁移账本。完整状态见[验收记录](docs/release-acceptance.md)。
 - `wrangler.jsonc` 保存资源 ID 和绑定；这些是配置标识符，不是凭据。
 
 ## Pages 部署
