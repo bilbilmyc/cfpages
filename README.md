@@ -1,18 +1,65 @@
-# Soren 的个人空间
+# Soren 的工作台
 
-面向 `199819.xyz` 的中文个人内容站和工具箱，使用 React、TypeScript、Vite、Cloudflare Pages Functions、R2 和 D1。
+面向 `199819.xyz` 的中文工具工作台，使用 React、TypeScript、Vite、Hono、Cloudflare Pages Functions、R2 和 D1。
+
+## 本次重写
+
+工具优先：首页直接打开开发工具、流程图和画布，内置可操作的 JSON 格式化/压缩区。Base64、URL、时间戳、哈希支持直接链接到对应工具。文章作为辅助内容保留，管理后台增加已加载文章的关键词与发布状态筛选。
+
+后端统一到 `server/api/`：`app.ts` 管理鉴权和错误边界，文章、图片、云草稿按业务分组；`functions/api/` 保留 Pages 路由入口。D1 表结构、原有文章地址、图片地址和本地草稿格式均兼容。本次没有新增数据迁移，仓库中原有的 `0003_tool_drafts.sql` 仍需在使用云同步前执行。
+
+云同步使用串行保存及数据库版本检查，冲突时停止自动写入；首次写入使用原子插入。请求体有大小上限，草稿按 UTF-8 字节限制 2 MiB。管理员密钥仅保存在页面内存中，刷新后重新连接；不会继续使用旧版 sessionStorage 中的密钥。
+
+## 隔离的本地预览（推荐）
+
+```sh
+npm ci
+npm run dev:local
+```
+
+打开 http://127.0.0.1:8788 。管理后台在 `/admin`，本地测试密钥为 `test-only-secret-with-at-least-32-characters`，禁止用于线上。
+
+这个命令先构建，再通过 `scripts/local.mjs` 创建隔离的 Pages 运行目录并执行本地迁移：
+
+- 使用 `wrangler.local.jsonc` 的虚拟资源 ID，不读取生产绑定或 `.dev.vars`。
+- 数据存放在 `.wrangler/rewrite/`，与旧的 `.wrangler/state/` 隔离。
+- 源码与构建产物暂存于 `.wrangler/local-preview/`；修改后重新运行命令更新预览。
+- 不调用远程迁移或部署；`wrangler.jsonc` 继续保留现有生产资源配置。
+
+在本地预览运行期间，另开终端验证：
+
+```sh
+npm run check
+npm run test:api
+npm run test:posts
+npx playwright install chromium
+npm run test:browser
+```
+
+如果已安装 Chrome，可设置环境变量 `PLAYWRIGHT_CHANNEL=chrome`，使用现有浏览器代替下载 Chromium。浏览器测试只连接固定的本地端口，覆盖文本转换、流程图导出、画布绘制/撤销、文章发布/草稿隔离、慢请求云同步、键盘跳转和六种屏幕宽度。
+
+## 代码入口
+
+- `src/config/navigation.ts`：工具目录和导航。
+- `src/components/QuickJSON.tsx`：首页的实际 JSON 工具。
+- `src/components/ArticleRows.tsx`、`ArticleReader.tsx`：文章列表和按需加载的 Markdown 阅读器。
+- `src/lib/cloudDraft.ts`：可取消、串行执行的云草稿状态管理。
+- `server/api/`：Hono 路由；`server/http.ts` 与 `server/posts.ts`：验证和数据辅助函数。
+- `tokens.css`、`design.md`：全站设计规范；`src/workspace.css`：工作台与后台布局。
+
+以下是既有功能和生产部署说明。生产资源信息是此前部署记录，本次本地重写没有重新确认或修改线上状态。
 
 ## 已实现
 
 - 首页、文章与分类关键词搜索、Markdown 阅读、关于与隐私说明。
 - 写作后台：直接输入文字、排版按钮、预览、插图、保存云端草稿、发布、更新与撤下、Markdown 导出、浏览器恢复副本。
 - 首页与介绍页构建时预渲染；D1 公开文章提供完整 HTML、标题、描述、canonical、Open Graph 和动态分页 sitemap。
-- 流程图：拖拽、连线、节点文字编辑、删除、缩放、JSON 导入导出、浏览器本地草稿。
-- 自由画布：画笔、矩形、椭圆、颜色和线宽、撤销重做、PNG 导出、本地草稿。
+- 流程图：拖拽、连线、节点文字编辑、删除、缩放、JSON 导入导出、浏览器本地草稿，可选云端同步。
+- 自由画布：画笔、矩形、椭圆、颜色和线宽、撤销重做、PNG 导出、本地草稿，可选云端同步。
 - 开发工具：JSON 格式化/压缩、UTF-8 Base64、URL 参数编码、时间戳和 SHA-256。
 - 站主图床：管理员鉴权、R2 上传与公开图片链接、D1 元数据、分页、复制直链/Markdown、归档和恢复。
 
-文章由站主在 `/admin` 写作后台管理，保存在 D1，发布后立即更新，无需修改代码或重新部署。流程图和画布草稿仍保存在当前浏览器，不包含云端同步或多人协作。
+文章由站主在 `/admin` 写作后台管理，保存在 D1，发布后立即更新，无需修改代码或重新部署。流程图和画布默认保存在当前浏览器；点击工具页的“云同步”并输入 `ADMIN_TOKEN` 后，草稿会自动保存到 D1（`tool_drafts` 表），换设备也能找回。云同步仍是单人使用，不包含多人协作。
 
 ## 怎么写文章
 
@@ -63,6 +110,7 @@ Wrangler 默认本地模拟 R2/D1，数据保存在 `.wrangler/state`，这些�
 - R2：`personal-site-images`，Standard 存储类，绑定名 `IMAGES`。
 - D1 已在控制台执行 `migrations/0001_initial.sql`，创建 `images` 表和分页索引。
 - D1 已执行 `migrations/0002_posts.sql`，创建文章表与索引；草稿和公开快照分开保存，使用版本号防止覆盖。
+- D1 已执行 `migrations/0003_tool_drafts.sql`，创建 `tool_drafts` 表，保存流程图与画布的云端草稿（同样使用版本号防止旧窗口覆盖）。
 - `wrangler.jsonc` 保存资源 ID 和绑定；这些是配置标识符，不是凭据。
 
 ## Pages 部署

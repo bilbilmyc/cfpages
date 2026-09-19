@@ -3,7 +3,7 @@ import { site } from '../config';
 export default function About() {
   return (
     <>
-      <PageTitle title="一个慢慢生长的空间" description="记录、尝试、分享。让有用的东西留下来。" />
+      <PageTitle title="关于工作台" description="在线工具、个人文章与数据说明。" />
       <div className="prose about">
         <h2>关于这里</h2>
         <p>
@@ -25,7 +25,8 @@ export default function About() {
         )}
         <h2>你的数据在哪里</h2>
         <p>
-          JSON、编码转换、时间戳与哈希计算在当前浏览器内完成。流程图和画布草稿只保存到当前浏览器的本地存储，不会自动同步到服务器。清理浏览器数据可能丢失草稿，重要内容请导出备份。
+          JSON、编码转换、时间戳与哈希计算在当前浏览器内完成。流程图和画布默认保存到当前浏览器的本地存储；站主主动开启云同步后，对应草稿会自动保存到
+          D1。访客无需登录即可使用本地功能。清理浏览器数据可能丢失草稿，重要内容请导出备份。
         </p>
         <p>
           图片空间仅允许站主上传。上传的图片保存在 Cloudflare R2，图片名称、大小和时间等元数据保存在

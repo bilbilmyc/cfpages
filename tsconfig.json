@@ -13,5 +13,13 @@
     "noEmit": true,
     "types": ["vite/client", "@cloudflare/workers-types", "node"]
   },
-  "include": ["src", "functions", "server", "tests", "vite.config.ts", "playwright.config.ts"]
+  "include": [
+    "src",
+    "functions",
+    "server",
+    "tests",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
 }

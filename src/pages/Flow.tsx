@@ -15,6 +15,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Download, Upload, Trash2 } from 'lucide-react';
 import { PageTitle, Notice, download } from '../components/ui';
+import CloudSync from '../components/CloudSync';
+import { useCloudDraft } from '../lib/cloudDraft';
 import { readLocal, saveLocal } from '../lib/storage';
 type Diagram = { nodes: Node[]; edges: Edge[] };
 const initial: Diagram = {
@@ -81,6 +83,16 @@ export default function Flow() {
   const [storageOK, setStorageOK] = useState(true);
   const latest = useRef({ nodes, edges });
   latest.current = { nodes, edges };
+  const sync = useCloudDraft<Diagram>(
+    'flow',
+    latest.current,
+    (d) => {
+      setNodes(d.nodes);
+      setEdges(d.edges);
+      setSelected(null);
+    },
+    validDiagram,
+  );
   useEffect(
     () => () => {
       saveLocal('studio-flow-v1', latest.current);
@@ -134,7 +146,7 @@ export default function Flow() {
         title="流程图"
         description="把想法展开，让每一步都清楚。拖动节点，从连接点拉出一条线。"
       >
-        <span className="badge">本地草稿</span>
+        <span className="badge">{sync.status === 'on' ? '本地 + 云端' : '本地草稿'}</span>
       </PageTitle>
       <div className="editor-toolbar">
         <label className="inline-field">
@@ -161,6 +173,7 @@ export default function Flow() {
           更新选中
         </button>
         <div className="toolbar-spacer" />
+        <CloudSync sync={sync} />
         <button
           className="button"
           onClick={() => download(JSON.stringify({ nodes, edges }, null, 2), 'flow.json')}

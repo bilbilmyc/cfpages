@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Download, Undo2, Redo2, Pencil, Square, Circle, Trash2 } from 'lucide-react';
 import { PageTitle, Notice } from '../components/ui';
+import CloudSync from '../components/CloudSync';
+import { useCloudDraft } from '../lib/cloudDraft';
 import { readLocal, saveLocal } from '../lib/storage';
 type Point = { x: number; y: number };
 type Stroke = { kind: 'pen' | 'rect' | 'ellipse'; color: string; width: number; points: Point[] };
@@ -76,6 +78,16 @@ export default function Canvas() {
   const [color, setColor] = useState(colors[0]);
   const [width, setWidth] = useState(4);
   const [ok, setOK] = useState(true);
+  const sync = useCloudDraft<Stroke[]>(
+    'canvas',
+    strokes,
+    (s) => {
+      setStrokes(s);
+      setUndo([]);
+      setRedo([]);
+    },
+    validStrokes,
+  );
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (ctx) paint(ctx, strokes);
@@ -102,7 +114,7 @@ export default function Canvas() {
   return (
     <>
       <PageTitle title="自由画布" description="不必想得很完整，先画下来。支持鼠标、触控和触控笔。">
-        <span className="badge">本地草稿</span>
+        <span className="badge">{sync.status === 'on' ? '本地 + 云端' : '本地草稿'}</span>
       </PageTitle>
       <div className="editor-toolbar">
         <div className="tabs">
@@ -167,6 +179,7 @@ export default function Canvas() {
           <Trash2 size={16} />
           清空
         </button>
+        <CloudSync sync={sync} />
         <button
           className="button primary"
           onClick={() => {
@@ -207,7 +220,7 @@ export default function Canvas() {
       </div>
       <div className="editor-foot">
         <span>1200 × 720 · {strokes.length} 笔</span>
-        <span>草稿自动保存 · 清空可撤销 · 最多 2000 笔</span>
+        <span>草稿自动保存 · 清空可撤销 · 最多 2000 笔 · 连接云同步后多设备可用</span>
       </div>
       {!ok && <Notice error>无法保存到浏览器，请导出 PNG 备份。</Notice>}
     </>

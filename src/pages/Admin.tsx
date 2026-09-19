@@ -16,6 +16,13 @@ export default function Admin() {
     [dirty, setDirty] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const shownPosts = posts.filter(
+    (p) =>
+      p.title.toLowerCase().includes(query.toLowerCase()) &&
+      (filter === 'all' || (filter === 'published' ? Boolean(p.published_at) : !p.published_at)),
+  );
   async function list(key: string, offset = 0) {
     const data = await requestJSON<{ posts: ManagedPostSummary[]; next: number | null }>(
       `/api/admin/posts?offset=${offset}`,
@@ -62,7 +69,7 @@ export default function Admin() {
     <>
       <PageTitle
         title="文章管理"
-        description="留一个念头，写一篇文章。按自己的节奏，把想法慢慢写完整。"
+        description="管理草稿与公开文章。保存草稿不会替换已发布的版本。"
       />
       <div className="editor-toolbar">
         <button className="button primary" disabled={busy} onClick={() => void select()}>
@@ -74,7 +81,28 @@ export default function Admin() {
         <aside className="writing-list" aria-label="我的文章">
           <h2>我的文章</h2>
           <p className="muted small-text">草稿仅自己可见，发布后进入文章列表。</p>
-          {posts.map((p) => (
+          <label className="sr-only" htmlFor="admin-search">
+            筛选已加载文章
+          </label>
+          <input
+            id="admin-search"
+            className="admin-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="筛选已加载文章…"
+          />
+          <div className="admin-filter">
+            {[
+              ['all', '全部'],
+              ['draft', '草稿'],
+              ['published', '已发布'],
+            ].map(([key, label]) => (
+              <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {shownPosts.map((p) => (
             <button
               className="writing-item"
               aria-pressed={selected?.id === p.id}
@@ -91,6 +119,9 @@ export default function Admin() {
           {loading && <p role="status">正在打开文章列表…</p>}
           {!loading && !error && !posts.length && (
             <p className="muted">还没有文章。点击“新建文章”，写下第一段文字。</p>
+          )}
+          {!loading && posts.length > 0 && !shownPosts.length && (
+            <p className="muted small-text">已加载的文章中没有匹配项。</p>
           )}
           {next !== null && (
             <button
@@ -136,7 +167,7 @@ export default function Admin() {
         ) : (
           <section className="writing-start">
             <PenLine size={36} />
-            <h2>把第一句话写下来</h2>
+            <h2>选择文章，或新建草稿</h2>
             <p>
               无需编辑代码。新建文章后填写标题和正文，
               <br />
