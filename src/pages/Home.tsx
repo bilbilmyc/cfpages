@@ -4,6 +4,7 @@ import { tools } from '../config/navigation';
 import { usePublishedPosts } from '../lib/usePublishedPosts';
 import ArticleRows from '../components/ArticleRows';
 import QuickJSON from '../components/QuickJSON';
+import DocumentLibrary from '../components/documents/DocumentLibrary';
 import './home.css';
 export default function Home() {
   const { posts, loading, error, retry } = usePublishedPosts();
@@ -14,8 +15,9 @@ export default function Home() {
           <h1>工作台</h1>
           <p>处理文本、整理流程、画下想法。</p>
         </div>
-        <span className="workspace-label">无需登录 · 打开即用</span>
+        <span className="workspace-label">本地工具直接用 · 云端文件随时续写</span>
       </header>
+      <DocumentLibrary />
       <section className="tool-directory" aria-label="常用工具">
         {tools.map(({ to, label, icon: Icon, description, detail }) => (
           <Link className="tool-entry" key={to} to={to}>

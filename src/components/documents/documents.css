@@ -1,0 +1,164 @@
+.file-library {
+  border: 1px solid var(--color-rule);
+  background: var(--color-surface);
+  padding: var(--space-lg);
+  min-width: 0;
+}
+.file-library h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.file-connect p {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.file-connect form,
+.file-toolbar,
+.file-actions,
+.file-rename,
+.document-heading,
+.document-name,
+.save-document-form form {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.file-connect input {
+  width: min(320px, 100%);
+}
+.file-filters {
+  display: flex;
+  gap: var(--space-md);
+  align-items: end;
+  flex-wrap: wrap;
+  margin: var(--space-md) 0;
+}
+.file-filters label {
+  display: grid;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+}
+.file-filters label:first-child {
+  flex: 1;
+  min-width: 160px;
+}
+.file-filters span,
+.file-meta,
+.file-save-status {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.file-filters span {
+  padding-bottom: var(--space-sm);
+}
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  border-top: 1px solid var(--color-rule);
+  padding: var(--space-md) 0;
+}
+.file-details {
+  flex: 1;
+  min-width: 0;
+}
+.file-name {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  margin-bottom: var(--space-xs);
+}
+.file-name:hover {
+  color: var(--color-accent);
+}
+.file-meta {
+  display: block;
+}
+.file-rename input {
+  flex: 1;
+  min-width: 120px;
+}
+.document-heading {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-rule);
+}
+.document-name {
+  flex: 1;
+  min-width: 180px;
+}
+.document-name input {
+  flex: 1;
+  min-width: 120px;
+  font-weight: 600;
+}
+.file-save-status {
+  margin: var(--space-sm) 0 var(--space-md);
+}
+.file-recovery {
+  border: 1px solid var(--color-control);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--color-soft);
+}
+.file-recovery button {
+  margin: var(--space-xs);
+}
+.save-document {
+  position: relative;
+}
+.save-document-form {
+  margin-top: var(--space-sm);
+  max-width: 100%;
+  border: 1px solid var(--color-rule);
+  padding: var(--space-md);
+  background: var(--color-surface);
+}
+.file-library input,
+.file-library select,
+.document-heading input,
+.save-document input {
+  max-width: 100%;
+}
+@media (max-width: 700px) {
+  .file-library {
+    padding: var(--space-md);
+  }
+  .file-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .file-actions {
+    justify-content: flex-start;
+  }
+  .file-filters span {
+    width: 100%;
+    padding-bottom: 0;
+  }
+  .file-connect form {
+    align-items: stretch;
+  }
+  .file-connect .inline-field {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .file-connect input {
+    flex: 1;
+    min-width: 120px;
+  }
+  .document-name {
+    flex-basis: 100%;
+  }
+  .document-heading {
+    align-items: stretch;
+  }
+  .save-document-form .inline-field {
+    flex-wrap: wrap;
+  }
+}
