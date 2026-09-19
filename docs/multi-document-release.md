@@ -25,3 +25,11 @@
 回退保留 `tool_documents` 和原有三张表，不执行 DROP 或反向同步。旧应用暂时无法打开新命名文件，但新数据仍保留，可恢复新版后继续使用。旧云草稿仍可读写。Pages 回退不回退 D1/R2 数据；Time Travel 只用于已确认的数据损坏，先暂停写入并备份当前数据。
 
 云端部署、备份书签与验收结果将在实际执行后追加，不能将本地通过当成远程验收完成。
+
+## 预览验收（2026-09-19）
+
+- 功能提交：`aa37149c6dcef69df4f7c5539f86d75c644ad06c`。
+- Cloudflare 部署 `ae2353d3-0902-43cc-ba1b-38dc05c1aad0`，唯一 URL <https://ae2353d3.cfpages-7s6.pages.dev>；GitHub 检查确认部署成功。
+- 独立预览数据库 `1fec44f7-5554-4fbf-8762-40d1285cde8b` 控制台执行 0004，查询确认 `tool_documents` 表和 `idx_tool_documents_recent` 索引存在。
+- 只对该唯一预览 URL 使用独立预览密钥执行完整文件 API 测试：鉴权、跨站拒绝、输入验证、独立复制、并发写入仅一方成功、旧版本拒绝、归档/恢复、打开不影响内容版本、筛选分页和一次性旧草稿导入均通过；新建测试文件最终归档。
+- [GitHub Actions 35447390285](https://github.com/bilbilmyc/cfpages/actions/runs/35447390285) 在 Linux 中完成 33 项单元测试、17 项浏览器/API 验收，全部通过。
