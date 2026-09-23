@@ -23,6 +23,7 @@ class UpstreamError extends Error {
   constructor(
     public status: number,
     public retryAfter: string | null = null,
+    public stage: 'token' | 'metadata' = 'token',
   ) {
     super(`Docker Hub returned ${status}`);
   }
@@ -77,7 +78,11 @@ async function getToken(
   const response = await fetcher(url, { headers, redirect: 'manual' });
   if (response.status >= 300 && response.status < 400)
     throw new Error('Docker Hub token endpoint redirected');
-  if (!response.ok) throw new UpstreamError(response.status, response.headers.get('Retry-After'));
+  if (!response.ok) {
+    const retryAfter = response.headers.get('Retry-After');
+    await response.body?.cancel();
+    throw new UpstreamError(response.status, retryAfter);
+  }
   const data: unknown = await response.json();
   if (!data || typeof data !== 'object' || !('token' in data) || typeof data.token !== 'string')
     throw new Error('Docker Hub token response is invalid');
@@ -138,16 +143,17 @@ async function fetchRegistry(
 
 async function isPublicRepository(
   repository: string,
-  origin: string,
   fetcher: typeof fetch,
-  cache: Cache | undefined,
-  ctx: MirrorContext,
 ): Promise<boolean> {
   const parts = repository.split('/');
   if (parts.length !== 2) return false;
   const [namespace, name] = parts;
-  const key = new Request(`${origin}/_mirror-public/${repository}`, { method: 'GET' });
-  if (cache && (await cache.match(key).catch(() => undefined))) return true;
+
+  // The anonymous token currently includes pull grants for public repositories.
+  // If Docker changes to opaque tokens, use its public repository API instead.
+  const anonymousToken = await getToken(repository, fetcher, {}, true);
+  const anonymousAccess = anonymousPullAccess(anonymousToken, repository);
+  if (anonymousAccess !== null) return anonymousAccess;
 
   const response = await fetcher(`${HUB_API}/${namespace}/repositories/${name}`, {
     headers: { Accept: 'application/json' },
@@ -155,8 +161,8 @@ async function isPublicRepository(
   });
   if (response.status === 404 || response.status === 403) return false;
   if (response.status === 429)
-    throw new UpstreamError(429, response.headers.get('Retry-After'));
-  if (!response.ok) throw new UpstreamError(response.status);
+    throw new UpstreamError(429, response.headers.get('Retry-After'), 'metadata');
+  if (!response.ok) throw new UpstreamError(response.status, null, 'metadata');
   const data: unknown = await response.json();
   const isPublic =
     !!data &&
@@ -167,14 +173,33 @@ async function isPublicRepository(
     data.name === name &&
     'is_private' in data &&
     data.is_private === false;
-  if (isPublic && cache) {
-    ctx.waitUntil(
-      cache
-        .put(key, new Response('public', { headers: { 'Cache-Control': 'public, max-age=60' } }))
-        .catch(() => undefined),
-    );
-  }
   return isPublic;
+}
+
+function anonymousPullAccess(token: string, repository: string): boolean | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const encoded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims: unknown = JSON.parse(atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=')));
+    if (!claims || typeof claims !== 'object') return null;
+    const data = claims as Record<string, unknown>;
+    if (
+      data.iss !== 'auth.docker.io' ||
+      data.aud !== 'registry.docker.io' ||
+      typeof data.exp !== 'number' ||
+      data.exp <= Date.now() / 1000 ||
+      !Array.isArray(data.access)
+    ) return null;
+    return data.access.some((entry: unknown) => {
+      if (!entry || typeof entry !== 'object') return false;
+      const grant = entry as Record<string, unknown>;
+      return grant.type === 'repository' && grant.name === repository &&
+        Array.isArray(grant.actions) && grant.actions.includes('pull');
+    });
+  } catch {
+    return null;
+  }
 }
 
 function forward(response: Response, method: string): Response {
@@ -229,10 +254,10 @@ export async function handleRequest(
   try {
     const cache = dependencies.cache;
     // Authenticated tokens can read private repositories. Check visibility
-    // anonymously before every request, with a short positive cache.
+    // anonymously before every request.
     if (
       env.DOCKERHUB_USERNAME &&
-      !(await isPublicRepository(target.repository, url.origin, dependencies.fetch, cache, ctx))
+      !(await isPublicRepository(target.repository, dependencies.fetch))
     )
       return registryResponse(404, 'NAME_UNKNOWN', 'Only public repositories are available');
 
@@ -276,9 +301,19 @@ export async function handleRequest(
         429,
         'TOOMANYREQUESTS',
         'Docker Hub rate limit reached',
-        error.retryAfter ? { 'Retry-After': error.retryAfter } : undefined,
+        {
+          'X-Mirror-Upstream-Stage': error.stage,
+          ...(error.retryAfter ? { 'Retry-After': error.retryAfter } : {}),
+        },
       );
-    return registryResponse(502, 'UNAVAILABLE', 'Docker Hub is unavailable from this mirror');
+    if (error instanceof UpstreamError)
+      return registryResponse(503, 'UNAVAILABLE', 'Docker Hub upstream request failed', {
+        'X-Mirror-Upstream-Stage': error.stage,
+        'X-Mirror-Upstream-Status': String(error.status),
+      });
+    return registryResponse(503, 'UNAVAILABLE', 'Docker Hub is unavailable from this mirror', {
+      'X-Mirror-Error-Type': error instanceof Error ? error.name : 'Unknown',
+    });
   }
 }
 

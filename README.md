@@ -43,7 +43,9 @@ npx wrangler pages secret put DOCKERHUB_TOKEN --project-name cfpages
 npm run deploy
 ```
 
-两次命令都会在本机交互式读取值；不要把 token 发到聊天、放进 URL 或提交到仓库。建议使用不拥有任何私有仓库访问权的专用账号。代码在使用账号 token 前，还会通过 Docker Hub 的匿名仓库元数据接口检查公开性，短暂缓存正面结果；接口不可用时拒绝拉取，以免凭据把私有镜像开放给所有人。[Docker Hub 仓库查询接口](https://docs.docker.com/reference/api/hub/latest/operations/GetRepository/)
+两次命令都会在本机交互式读取值；不要把 token 发到聊天、放进 URL 或提交到仓库。`DOCKERHUB_USERNAME` 必须是 Docker ID，不是邮箱。建议使用不拥有任何私有仓库访问权的专用账号。代码在使用账号 token 前，先检查匿名 token 是否授予该仓库的拉取权限；若 token 格式无法识别，再用 Docker Hub 的公开仓库元数据接口检查。检查失败时拒绝拉取，以免凭据把私有镜像开放给所有人。[Docker Hub 仓库查询接口](https://docs.docker.com/reference/api/hub/latest/operations/GetRepository/)
+
+如果线上响应头显示 `X-Mirror-Upstream-Stage: token` 且返回 429，可先在本机使用相同 Docker ID 和 PAT 执行 `docker login --username <Docker ID>`。Docker Hub 认证接口可能因账号名/PAT 不匹配或共享出口 IP 上的多次失败登录而暂时阻止认证。不要通过重复提交登录请求来碰运气。
 
 Docker Hub Personal 账号的认证配额仍有限，Pro/Team/Business 账号才有更高的公开拉取能力，并受公平使用规则约束。[Docker Hub 拉取限制](https://docs.docker.com/docker-hub/usage/pulls/) 公网开放也会消耗 Pages Functions/Workers 请求配额。建议在 Cloudflare 为该域名配置请求速率规则并监控用量。Cloudflare Cache API 按数据中心缓存，不能当作持久化仓库。[Cloudflare 缓存说明](https://developers.cloudflare.com/workers/runtime-apis/cache/) · [Workers 限制](https://developers.cloudflare.com/workers/platform/limits/)
 

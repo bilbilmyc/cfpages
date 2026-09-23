@@ -4,6 +4,16 @@ import { handleRequest } from '../worker';
 const digest = `sha256:${'a'.repeat(64)}`;
 const env = {};
 
+function anonymousToken(repository: string, canPull: boolean) {
+  const claims = {
+    iss: 'auth.docker.io',
+    aud: 'registry.docker.io',
+    exp: Math.floor(Date.now() / 1000) + 300,
+    access: canPull ? [{ type: 'repository', name: repository, actions: ['pull'] }] : [],
+  };
+  return `${btoa('{}')}.${btoa(JSON.stringify(claims))}.signature`;
+}
+
 function client(path: string, init: RequestInit = {}) {
   return new Request(`https://mirror.example${path}`, {
     ...init,
@@ -166,14 +176,14 @@ describe('Docker Hub mirror', () => {
   it('uses an upstream secret only after checking that a repository is public', async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input));
-      if (url.hostname === 'hub.docker.com')
-        return Response.json({ namespace: 'library', name: 'testpublic', is_private: false });
       if (url.hostname === 'auth.docker.io') {
-        expect(new Headers(init?.headers).get('Authorization')).toBe(
-          `Basic ${btoa('mirror-user:test-secret')}`,
-        );
+        const authorization = new Headers(init?.headers).get('Authorization');
+        if (!authorization)
+          return Response.json({ token: anonymousToken('library/testpublic', true) });
+        expect(authorization).toBe(`Basic ${btoa('mirror-user:test-secret')}`);
         return Response.json({ token: 'account-token', expires_in: 300 });
       }
+      expect(url.hostname).toBe('registry-1.docker.io');
       expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer account-token');
       return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
     }) as typeof fetch;
@@ -190,9 +200,10 @@ describe('Docker Hub mirror', () => {
   });
 
   it('does not use account access to expose private repositories', async () => {
-    const fetcher = vi.fn(async () =>
-      Response.json({ namespace: 'library', name: 'testprivate', is_private: true }),
-    ) as typeof fetch;
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      expect(new URL(String(input)).hostname).toBe('auth.docker.io');
+      return Response.json({ token: anonymousToken('library/testprivate', false) });
+    }) as typeof fetch;
     const response = await handleRequest(
       client('/v2/library/testprivate/manifests/latest'),
       { DOCKERHUB_USERNAME: 'mirror-user', DOCKERHUB_TOKEN: 'test-secret' },
@@ -208,6 +219,45 @@ describe('Docker Hub mirror', () => {
       { fetch: fetcher },
     );
     expect(incomplete.status).toBe(503);
+  });
+
+  it('falls back to public repository metadata if the anonymous token is opaque', async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.hostname === 'auth.docker.io')
+        return Response.json({
+          token: new Headers(init?.headers).has('Authorization') ? 'account-token' : 'opaque',
+        });
+      if (url.hostname === 'hub.docker.com')
+        return Response.json({ namespace: 'library', name: 'opaque-test', is_private: false });
+      return new Response('{}');
+    }) as typeof fetch;
+    const response = await handleRequest(
+      client('/v2/library/opaque-test/manifests/latest'),
+      { DOCKERHUB_USERNAME: 'mirror-user', DOCKERHUB_TOKEN: 'test-secret' },
+      context(),
+      { fetch: fetcher },
+    );
+    expect(response.status).toBe(200);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+  });
+
+  it('identifies an authenticated token endpoint rate limit without exposing credentials', async () => {
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(String(input)).hostname).toBe('auth.docker.io');
+      if (!new Headers(init?.headers).has('Authorization'))
+        return Response.json({ token: anonymousToken('library/rate-test', true) });
+      return Response.json({ details: 'too many failed login attempts' }, { status: 429 });
+    }) as typeof fetch;
+    const response = await handleRequest(
+      client('/v2/library/rate-test/manifests/latest'),
+      { DOCKERHUB_USERNAME: 'mirror-user', DOCKERHUB_TOKEN: 'test-secret' },
+      context(),
+      { fetch: fetcher },
+    );
+    expect(response.status).toBe(429);
+    expect(response.headers.get('X-Mirror-Upstream-Stage')).toBe('token');
+    expect(await response.text()).not.toContain('test-secret');
   });
 
   it('rejects writes, unknown routes, queries, and invalid repository paths', async () => {
