@@ -1,42 +1,18 @@
 {
-  "name": "soren-studio",
+  "name": "cfpages-docker-hub-mirror",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build && node scripts/prerender.mjs",
-    "preview": "vite preview --host 127.0.0.1",
-    "dev:cloud": "npm run build && wrangler pages dev dist --persist-to .wrangler/state",
-    "db:local": "wrangler d1 execute DB --local --file migrations/0001_initial.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0002_posts.sql --persist-to .wrangler/state && wrangler d1 execute DB --local --file migrations/0003_tool_drafts.sql --persist-to .wrangler/state",
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "dev": "npm run build && wrangler pages dev dist --port 8788",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name cfpages --branch main",
     "test": "vitest run",
-    "test:api": "node scripts/test-api.mjs",
-    "test:posts": "node scripts/test-posts.mjs",
-    "format": "prettier --write src server functions tests tokens.css design.md",
-    "check": "npm run build && npm test",
-    "dev:local": "npm run build && node scripts/local.mjs",
-    "db:preview": "node scripts/local.mjs setup",
-    "test:browser": "playwright test"
-  },
-  "dependencies": {
-    "@xyflow/react": "^12.8.0",
-    "hono": "^4.13.8",
-    "lucide-react": "^0.468.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.6.0"
+    "check": "npm run build && npm test"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260903.1",
-    "@playwright/test": "^1.63.0",
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "prettier": "^3.9.6",
+    "esbuild": "^0.25.0",
     "typescript": "~5.9.2",
-    "vite": "^7.1.0",
     "vitest": "^4.1.11",
     "wrangler": "^4.33.0"
   },
