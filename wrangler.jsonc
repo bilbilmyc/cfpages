@@ -2,27 +2,5 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cfpages",
   "pages_build_output_dir": "./dist",
-  "compatibility_date": "2026-09-01",
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "personal-site-db",
-      "database_id": "2abf91e2-f66e-4829-9fa1-b0065bf38a27",
-      "migrations_dir": "migrations",
-    },
-  ],
-  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "personal-site-images" }],
-  "env": {
-    "preview": {
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "personal-site-preview-db",
-          "database_id": "1fec44f7-5554-4fbf-8762-40d1285cde8b",
-          "migrations_dir": "migrations",
-        },
-      ],
-      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "personal-site-preview-images" }],
-    },
-  },
+  "compatibility_date": "2026-09-01"
 }
